@@ -1,2 +1,3 @@
-# oakTools
-Tools for Apache Oak
+# Apache Jackrabbit Oak Tools
+
+Tools for Apache Jackrabbit Oak
