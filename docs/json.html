@@ -81,8 +81,8 @@
         
         <div class="column right-column">
             <h2>Formatted JSON</h2>
-            <div style="height: 46px; margin-bottom: 10px;"></div>
-            <textarea id="formattedOutput" placeholder="Formatted JSON will appear here..." readonly></textarea>
+            <button onclick="minifyJSON()">Minify</button>
+            <textarea id="formattedOutput" placeholder="Formatted JSON will appear here..."></textarea>
         </div>
     </div>
 
@@ -183,6 +183,51 @@
             }
         }
 
+        function minifyJSON() {
+            const rawInput = document.getElementById('rawInput');
+            const formattedOutput = document.getElementById('formattedOutput');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            try {
+                const formattedJSON = formattedOutput.value.trim();
+                
+                if (formattedJSON === '') {
+                    rawInput.value = '';
+                    return;
+                }
+                
+                // Parse JSON to validate it
+                const parsedJSON = JSON.parse(formattedJSON);
+                
+                // Minify by stringifying without spaces
+                const minifiedJSON = JSON.stringify(parsedJSON);
+                
+                rawInput.value = minifiedJSON;
+                successMessage.textContent = 'JSON successfully minified!';
+                successMessage.style.display = 'block';
+                
+            } catch (error) {
+                rawInput.value = '';
+                
+                let errorText = 'Invalid JSON: ';
+                if (error.message.includes('Unexpected token')) {
+                    errorText += 'Syntax error in JSON structure';
+                } else if (error.message.includes('Unexpected end')) {
+                    errorText += 'Incomplete JSON structure';
+                } else {
+                    errorText += error.message;
+                }
+                
+                errorMessage.textContent = errorText;
+                errorMessage.style.display = 'block';
+            }
+        }
+
         // Allow Enter key to trigger conversion
         document.getElementById('rawInput').addEventListener('keydown', function(event) {
             if (event.ctrlKey && event.key === 'Enter') {
@@ -194,6 +239,15 @@
         document.getElementById('rawInput').addEventListener('input', function() {
             if (this.value.trim() === '') {
                 document.getElementById('formattedOutput').value = '';
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+            }
+        });
+
+        // Clear raw input when formatted output is cleared
+        document.getElementById('formattedOutput').addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                document.getElementById('rawInput').value = '';
                 document.getElementById('errorMessage').style.display = 'none';
                 document.getElementById('successMessage').style.display = 'none';
             }
