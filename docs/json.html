@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .column {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
+        .right-column {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>JSON Formatter</h1>
+    
+    <div class="container">
+        <div class="column">
+            <h2>Raw JSON</h2>
+            <button onclick="formatJSON()">Convert</button>
+            <textarea id="rawInput" placeholder="Enter your raw JSON here..."></textarea>
+            <div id="errorMessage" class="error"></div>
+            <div id="successMessage" class="success"></div>
+        </div>
+        
+        <div class="column right-column">
+            <h2>Formatted JSON</h2>
+            <div style="height: 46px; margin-bottom: 10px;"></div>
+            <textarea id="formattedOutput" placeholder="Formatted JSON will appear here..." readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        function sortObjectKeys(obj) {
+            if (Array.isArray(obj)) {
+                // Preserve array order, but process each element
+                return obj.map(item => sortObjectKeys(item));
+            } else if (obj !== null && typeof obj === 'object') {
+                // Separate properties from child objects
+                const properties = {};
+                const children = {};
+                const propertyKeys = [];
+                const childKeys = [];
+                
+                Object.keys(obj).forEach(key => {
+                    const value = obj[key];
+                    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+                        // This is a child object
+                        children[key] = value;
+                        childKeys.push(key);
+                    } else {
+                        // This is a property (primitive, array, or null)
+                        properties[key] = value;
+                        propertyKeys.push(key);
+                    }
+                });
+                
+                // Sort property keys alphabetically
+                propertyKeys.sort();
+                // Keep child keys in original order (childKeys already in original order)
+                
+                // Build result object: properties first (sorted), then children (original order)
+                const result = {};
+                
+                // Add sorted properties first
+                propertyKeys.forEach(key => {
+                    result[key] = sortObjectKeys(properties[key]);
+                });
+                
+                // Add children in original order
+                childKeys.forEach(key => {
+                    result[key] = sortObjectKeys(children[key]);
+                });
+                
+                return result;
+            } else {
+                // Primitive values remain unchanged
+                return obj;
+            }
+        }
+
+        function formatJSON() {
+            const rawInput = document.getElementById('rawInput');
+            const formattedOutput = document.getElementById('formattedOutput');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            try {
+                const rawJSON = rawInput.value.trim();
+                
+                if (rawJSON === '') {
+                    formattedOutput.value = '';
+                    return;
+                }
+                
+                // Parse JSON to validate it
+                const parsedJSON = JSON.parse(rawJSON);
+                
+                // Sort object keys alphabetically while preserving array order
+                const sortedJSON = sortObjectKeys(parsedJSON);
+                
+                // Format with 4 spaces indentation
+                const formattedJSON = JSON.stringify(sortedJSON, null, 4);
+                
+                formattedOutput.value = formattedJSON;
+                successMessage.textContent = 'JSON successfully formatted and validated!';
+                successMessage.style.display = 'block';
+                
+            } catch (error) {
+                formattedOutput.value = '';
+                
+                let errorText = 'Invalid JSON: ';
+                if (error.message.includes('Unexpected token')) {
+                    errorText += 'Syntax error in JSON structure';
+                } else if (error.message.includes('Unexpected end')) {
+                    errorText += 'Incomplete JSON structure';
+                } else {
+                    errorText += error.message;
+                }
+                
+                errorMessage.textContent = errorText;
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        // Allow Enter key to trigger conversion
+        document.getElementById('rawInput').addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                formatJSON();
+            }
+        });
+
+        // Clear formatted output when raw input is cleared
+        document.getElementById('rawInput').addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                document.getElementById('formattedOutput').value = '';
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 

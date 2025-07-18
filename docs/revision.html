@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revision Formatter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .column {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .info {
+            color: #666;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .right-column {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>Revision Formatter</h1>
+    
+    <div class="container">
+        <div class="column">
+            <h2>Input</h2>
+            <button onclick="formatRevisions()">Convert</button>
+            <textarea id="inputText" placeholder="Paste your text with revision IDs here..."></textarea>
+            <div class="info">
+                Converts revision IDs like "r14de69eb812-0-1" to include ISO 8601 timestamps
+            </div>
+        </div>
+        
+        <div class="column right-column">
+            <h2>Formatted Revisions</h2>
+            <div style="height: 46px; margin-bottom: 10px;"></div>
+            <textarea id="outputText" placeholder="Formatted text with timestamps will appear here..." readonly></textarea>
+            <div class="info">
+                Format: revision_id:YYYY-MM-DDTHH:MM:SS.sss UTC
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatRevisions() {
+            const inputText = document.getElementById('inputText');
+            const outputText = document.getElementById('outputText');
+            
+            const input = inputText.value;
+            
+            if (input.trim() === '') {
+                outputText.value = '';
+                return;
+            }
+            
+            // Regex pattern to match revision IDs: r[hex]-[num]-[num]
+            const revisionPattern = /r([0-9a-fA-F]+)-(\d+)-(\d+)/g;
+            
+            // Replace all revision IDs with formatted versions
+            const result = input.replace(revisionPattern, function(match, hexPart, num1, num2) {
+                try {
+                    // Convert hex to decimal (milliseconds since epoch)
+                    const milliseconds = parseInt(hexPart, 16);
+                    
+                    // Create Date object and format as ISO 8601
+                    const date = new Date(milliseconds);
+                    const isoString = date.toISOString();
+                    
+                    // Replace 'Z' with ' UTC' to match the expected format
+                    const formattedDate = isoString.replace('Z', ' UTC');
+                    
+                    // Return the original revision ID with the timestamp appended
+                    return match + ':' + formattedDate;
+                } catch (error) {
+                    // If conversion fails, return the original match
+                    return match;
+                }
+            });
+            
+            outputText.value = result;
+        }
+
+        // Auto-convert on input change
+        document.getElementById('inputText').addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                document.getElementById('outputText').value = '';
+            } else {
+                formatRevisions();
+            }
+        });
+
+        // Allow Enter key to trigger conversion
+        document.getElementById('inputText').addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                formatRevisions();
+            }
+        });
+    </script>
+</body>
+</html> 
