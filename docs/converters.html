@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unit Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .column {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .converter-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .converter-label {
+            width: 180px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+            flex-shrink: 0;
+        }
+        .converter-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .arrow {
+            margin: 0 15px;
+            color: #007cba;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .converter-output {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            font-family: monospace;
+            font-size: 14px;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .input-column {
+            width: 100%;
+        }
+        .output-column {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>Unit Converter</h1>
+    </div>
+    
+    <div class="container">
+        <div class="column">
+            <h2>Input</h2>
+            <div class="input-column">
+                <div class="converter-row">
+                    <div class="converter-label">Epoch Timestamp:</div>
+                    <input type="text" class="converter-input" id="epochInput" placeholder="Seconds or milliseconds">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Seconds:</div>
+                    <input type="number" class="converter-input" id="secondsInput" value="0" placeholder="Seconds">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Time (hh:mm:ss):</div>
+                    <input type="text" class="converter-input" id="timeInput" value="1:30:00" placeholder="hh:mm:ss">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Bytes:</div>
+                    <input type="number" class="converter-input" id="bytesInput" value="1073741824" placeholder="Number of bytes">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Cron Expression:</div>
+                    <input type="text" class="converter-input" id="cronInput" value="0 9 * * MON-FRI" placeholder="Cron expression">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Decimal:</div>
+                    <input type="number" class="converter-input" id="decimalInput" value="255" placeholder="Decimal number">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Hexadecimal:</div>
+                    <input type="text" class="converter-input" id="hexInput" value="FF" placeholder="Hex number">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">URL Encode:</div>
+                    <input type="text" class="converter-input" id="urlEncodeInput" value="Hello World & Friends!" placeholder="Text to encode">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">URL Decode:</div>
+                    <input type="text" class="converter-input" id="urlDecodeInput" value="Hello%20World%20%26%20Friends%21" placeholder="URL encoded text">
+                </div>
+            </div>
+        </div>
+        
+        <div class="column">
+            <h2>Output</h2>
+            <div class="output-column">
+                <div class="converter-row">
+                    <div class="converter-label">ISO 8601 UTC:</div>
+                    <input type="text" class="converter-output" id="epochOutput" readonly>
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Duration:</div>
+                    <input type="text" class="converter-output" id="secondsOutput" readonly>
+                </div>
+                                 <div class="converter-row">
+                     <div class="converter-label">Fractional Time:</div>
+                     <input type="text" class="converter-output" id="timeOutput" readonly>
+                 </div>
+                                 <div class="converter-row">
+                     <div class="converter-label">Bytes:</div>
+                     <input type="text" class="converter-output" id="bytesOutput" readonly>
+                 </div>
+                <div class="converter-row">
+                    <div class="converter-label">Human Readable:</div>
+                    <input type="text" class="converter-output" id="cronOutput" readonly>
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Hexadecimal:</div>
+                    <input type="text" class="converter-output" id="decimalOutput" readonly>
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Decimal:</div>
+                    <input type="text" class="converter-output" id="hexOutput" readonly>
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">URL Encoded:</div>
+                    <input type="text" class="converter-output" id="urlEncodeOutput" readonly>
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">URL Decoded:</div>
+                    <input type="text" class="converter-output" id="urlDecodeOutput" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set current timestamp as default
+        function setCurrentTimestamp() {
+            const now = Math.floor(Date.now() / 1000);
+            document.getElementById('epochInput').value = now;
+        }
+
+        // Convert epoch timestamp to ISO 8601
+        function convertEpoch() {
+            const input = document.getElementById('epochInput').value;
+            const output = document.getElementById('epochOutput');
+            
+            if (!input) {
+                output.value = '';
+                return;
+            }
+            
+            try {
+                let timestamp = parseInt(input);
+                // If it looks like milliseconds (> year 2001), convert to seconds
+                if (timestamp > 1000000000000) {
+                    timestamp = timestamp / 1000;
+                }
+                const date = new Date(timestamp * 1000);
+                output.value = date.toISOString().replace('Z', ' UTC');
+            } catch (error) {
+                output.value = 'Invalid timestamp';
+            }
+        }
+
+        // Convert seconds to duration format
+        function convertSeconds() {
+            const input = parseInt(document.getElementById('secondsInput').value) || 0;
+            const output = document.getElementById('secondsOutput');
+            
+            const days = Math.floor(input / 86400);
+            const hours = Math.floor((input % 86400) / 3600);
+            const minutes = Math.floor((input % 3600) / 60);
+            const seconds = input % 60;
+            
+            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (days > 0) {
+                output.value = `days: ${days}, ${timeStr}`;
+            } else {
+                output.value = timeStr;
+            }
+        }
+
+        // Convert time to fractional hours
+        function convertTime() {
+            const input = document.getElementById('timeInput').value;
+            const output = document.getElementById('timeOutput');
+            
+            try {
+                const parts = input.split(':');
+                if (parts.length !== 3) {
+                    output.value = 'Invalid format (use hh:mm:ss)';
+                    return;
+                }
+                
+                const hours = parseInt(parts[0]) || 0;
+                const minutes = parseInt(parts[1]) || 0;
+                const seconds = parseInt(parts[2]) || 0;
+                
+                const fractionalHours = hours + (minutes / 60) + (seconds / 3600);
+                
+                if (fractionalHours < 1.0) {
+                    const totalMinutes = (hours * 60) + minutes + (seconds / 60);
+                    output.value = `${fractionalHours.toFixed(3)} hours, ${totalMinutes.toFixed(3)} minutes`;
+                } else {
+                    output.value = `${fractionalHours.toFixed(3)} hours`;
+                }
+            } catch (error) {
+                output.value = 'Invalid time format';
+            }
+        }
+
+        // Convert bytes to various formats
+        function convertBytes() {
+            const input = parseInt(document.getElementById('bytesInput').value) || 0;
+            const output = document.getElementById('bytesOutput');
+            
+            if (input === 0) {
+                output.value = '0 bytes';
+                return;
+            }
+            
+            // Define binary and decimal unit pairs
+            const units = [
+                { binary: 'GiB', decimal: 'GB', binaryFactor: 1024 * 1024 * 1024, decimalFactor: 1000 * 1000 * 1000 },
+                { binary: 'MiB', decimal: 'MB', binaryFactor: 1024 * 1024, decimalFactor: 1000 * 1000 },
+                { binary: 'KiB', decimal: 'KB', binaryFactor: 1024, decimalFactor: 1000 }
+            ];
+            
+            // Find the first binary unit that results in >= 1.0
+            for (const unit of units) {
+                const binaryValue = input / unit.binaryFactor;
+                if (binaryValue >= 1.0) {
+                    const decimalValue = input / unit.decimalFactor;
+                    output.value = `${binaryValue.toFixed(2)} ${unit.binary}, ${decimalValue.toFixed(2)} ${unit.decimal}`;
+                    return;
+                }
+            }
+            
+            // If all units are < 1.0, just show bytes
+            output.value = `${input} bytes`;
+        }
+
+        // Convert cron expression to human readable
+        function convertCron() {
+            const input = document.getElementById('cronInput').value.trim();
+            const output = document.getElementById('cronOutput');
+            
+            if (!input) {
+                output.value = '';
+                return;
+            }
+            
+            try {
+                const parts = input.split(/\s+/);
+                if (parts.length !== 5) {
+                    output.value = 'Invalid cron format (use: min hour day month dow)';
+                    return;
+                }
+                
+                const [min, hour, day, month, dow] = parts;
+                
+                let result = 'At ';
+                
+                // Time
+                if (hour === '*' && min === '*') {
+                    result += 'every minute';
+                } else if (hour === '*') {
+                    result += `minute ${min} of every hour`;
+                } else if (min === '0') {
+                    result += `${hour}:00`;
+                } else {
+                    result += `${hour}:${min.padStart(2, '0')}`;
+                }
+                
+                // Day
+                if (day !== '*') {
+                    result += ` on day ${day}`;
+                }
+                
+                // Month
+                if (month !== '*') {
+                    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    result += ` in ${months[parseInt(month)] || month}`;
+                }
+                
+                // Day of week
+                if (dow !== '*') {
+                    const days = { '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat' };
+                    if (dow === 'MON-FRI') {
+                        result += ' on weekdays';
+                    } else if (days[dow]) {
+                        result += ` on ${days[dow]}`;
+                    } else {
+                        result += ` on ${dow}`;
+                    }
+                }
+                
+                output.value = result;
+            } catch (error) {
+                output.value = 'Error parsing cron expression';
+            }
+        }
+
+        // Convert decimal to hex
+        function convertDecimal() {
+            const input = parseInt(document.getElementById('decimalInput').value);
+            const output = document.getElementById('decimalOutput');
+            
+            if (isNaN(input)) {
+                output.value = '';
+                return;
+            }
+            
+            output.value = input.toString(16).toUpperCase();
+        }
+
+        // Convert hex to decimal
+        function convertHex() {
+            const input = document.getElementById('hexInput').value.trim();
+            const output = document.getElementById('hexOutput');
+            
+            if (!input) {
+                output.value = '';
+                return;
+            }
+            
+            try {
+                const decimal = parseInt(input, 16);
+                output.value = isNaN(decimal) ? 'Invalid hex' : decimal.toString();
+            } catch (error) {
+                output.value = 'Invalid hex';
+            }
+        }
+
+        // URL encode
+        function convertUrlEncode() {
+            const input = document.getElementById('urlEncodeInput').value;
+            const output = document.getElementById('urlEncodeOutput');
+            
+            try {
+                output.value = encodeURIComponent(input);
+            } catch (error) {
+                output.value = 'Error encoding';
+            }
+        }
+
+        // URL decode
+        function convertUrlDecode() {
+            const input = document.getElementById('urlDecodeInput').value;
+            const output = document.getElementById('urlDecodeOutput');
+            
+            try {
+                output.value = decodeURIComponent(input);
+            } catch (error) {
+                output.value = 'Error decoding';
+            }
+        }
+
+        // Set up event listeners
+        document.getElementById('epochInput').addEventListener('input', convertEpoch);
+        document.getElementById('secondsInput').addEventListener('input', convertSeconds);
+        document.getElementById('timeInput').addEventListener('input', convertTime);
+        document.getElementById('bytesInput').addEventListener('input', convertBytes);
+        document.getElementById('cronInput').addEventListener('input', convertCron);
+        document.getElementById('decimalInput').addEventListener('input', convertDecimal);
+        document.getElementById('hexInput').addEventListener('input', convertHex);
+        document.getElementById('urlEncodeInput').addEventListener('input', convertUrlEncode);
+        document.getElementById('urlDecodeInput').addEventListener('input', convertUrlDecode);
+
+        // Initialize with current timestamp and convert all default values
+        setCurrentTimestamp();
+        convertEpoch();
+        convertSeconds();
+        convertTime();
+        convertBytes();
+        convertCron();
+        convertDecimal();
+        convertHex();
+        convertUrlEncode();
+        convertUrlDecode();
+    </script>
+</body>
+</html> 
