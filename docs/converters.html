@@ -48,11 +48,6 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        h2 {
-            margin-top: 0;
-            color: #333;
-            text-align: center;
-        }
         .converter-row {
             display: flex;
             align-items: center;
@@ -91,7 +86,15 @@
             font-family: monospace;
             font-size: 14px;
             color: #666;
+        }
+        .converter-output.readonly {
             cursor: not-allowed;
+            background-color: #f9f9f9;
+        }
+        .converter-output.editable {
+            cursor: text;
+            background-color: white;
+            color: #333;
         }
         .input-column {
             width: 100%;
@@ -109,7 +112,6 @@
     
     <div class="container">
         <div class="column">
-            <h2>Input</h2>
             <div class="input-column">
                 <div class="converter-row">
                     <div class="converter-label">Epoch Timestamp:</div>
@@ -136,64 +138,49 @@
                     <input type="number" class="converter-input" id="decimalInput" value="255" placeholder="Decimal number">
                 </div>
                 <div class="converter-row">
-                    <div class="converter-label">Hexadecimal:</div>
-                    <input type="text" class="converter-input" id="hexInput" value="FF" placeholder="Hex number">
-                </div>
-                <div class="converter-row">
                     <div class="converter-label">URL Encode:</div>
                     <input type="text" class="converter-input" id="urlEncodeInput" value="Hello World & Friends!" placeholder="Text to encode">
-                </div>
-                <div class="converter-row">
-                    <div class="converter-label">URL Decode:</div>
-                    <input type="text" class="converter-input" id="urlDecodeInput" value="Hello%20World%20%26%20Friends%21" placeholder="URL encoded text">
                 </div>
             </div>
         </div>
         
         <div class="column">
-            <h2>Output</h2>
             <div class="output-column">
                 <div class="converter-row">
                     <div class="converter-label">ISO 8601 UTC:</div>
-                    <input type="text" class="converter-output" id="epochOutput" readonly>
+                    <input type="text" class="converter-output editable" id="epochOutput" placeholder="e.g. 2023-12-07T15:30:45.123">
                 </div>
                 <div class="converter-row">
                     <div class="converter-label">Duration:</div>
-                    <input type="text" class="converter-output" id="secondsOutput" readonly>
+                    <input type="text" class="converter-output editable" id="secondsOutput" placeholder="e.g. 1:30:00 or days: 1, 01:30:00">
                 </div>
-                                 <div class="converter-row">
-                     <div class="converter-label">Fractional Time:</div>
-                     <input type="text" class="converter-output" id="timeOutput" readonly>
-                 </div>
-                                 <div class="converter-row">
-                     <div class="converter-label">Bytes:</div>
-                     <input type="text" class="converter-output" id="bytesOutput" readonly>
-                 </div>
+                <div class="converter-row">
+                    <div class="converter-label">Fractional Time:</div>
+                    <input type="text" class="converter-output readonly" id="timeOutput" readonly>
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Bytes:</div>
+                    <input type="text" class="converter-output readonly" id="bytesOutput" readonly>
+                </div>
                 <div class="converter-row">
                     <div class="converter-label">Human Readable:</div>
-                    <input type="text" class="converter-output" id="cronOutput" readonly>
+                    <input type="text" class="converter-output readonly" id="cronOutput" readonly>
                 </div>
                 <div class="converter-row">
                     <div class="converter-label">Hexadecimal:</div>
-                    <input type="text" class="converter-output" id="decimalOutput" readonly>
-                </div>
-                <div class="converter-row">
-                    <div class="converter-label">Decimal:</div>
-                    <input type="text" class="converter-output" id="hexOutput" readonly>
+                    <input type="text" class="converter-output editable" id="decimalOutput" placeholder="e.g. ff">
                 </div>
                 <div class="converter-row">
                     <div class="converter-label">URL Encoded:</div>
-                    <input type="text" class="converter-output" id="urlEncodeOutput" readonly>
-                </div>
-                <div class="converter-row">
-                    <div class="converter-label">URL Decoded:</div>
-                    <input type="text" class="converter-output" id="urlDecodeOutput" readonly>
+                    <input type="text" class="converter-output editable" id="urlEncodeOutput" placeholder="e.g. Hello%20World">
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        let updating = false; // Prevent infinite loops in bidirectional updates
+
         // Set current timestamp as default
         function setCurrentTimestamp() {
             const now = Math.floor(Date.now() / 1000);
@@ -202,11 +189,15 @@
 
         // Convert epoch timestamp to ISO 8601
         function convertEpoch() {
+            if (updating) return;
+            updating = true;
+            
             const input = document.getElementById('epochInput').value;
             const output = document.getElementById('epochOutput');
             
             if (!input) {
                 output.value = '';
+                updating = false;
                 return;
             }
             
@@ -217,14 +208,57 @@
                     timestamp = timestamp / 1000;
                 }
                 const date = new Date(timestamp * 1000);
-                output.value = date.toISOString().replace('Z', ' UTC');
+                output.value = date.toISOString().replace('Z', '');
             } catch (error) {
                 output.value = 'Invalid timestamp';
             }
+            
+            updating = false;
+        }
+
+        // Convert ISO 8601 to epoch timestamp (reverse)
+        function convertEpochReverse() {
+            if (updating) return;
+            updating = true;
+            
+            const input = document.getElementById('epochOutput').value.trim();
+            const epochInput = document.getElementById('epochInput');
+            
+            if (!input) {
+                epochInput.value = '';
+                updating = false;
+                return;
+            }
+            
+            try {
+                // Add Z back if it's missing for proper ISO parsing
+                let isoString = input;
+                if (!isoString.endsWith('Z') && !isoString.includes('+') && !isoString.includes('-', 10)) {
+                    isoString += 'Z';
+                }
+                
+                const date = new Date(isoString);
+                if (isNaN(date.getTime())) {
+                    // Keep current value if parsing fails
+                    updating = false;
+                    return;
+                }
+                
+                // Convert to milliseconds (epoch timestamp)
+                const milliseconds = date.getTime();
+                epochInput.value = milliseconds.toString();
+            } catch (error) {
+                // Keep current value if parsing fails
+            }
+            
+            updating = false;
         }
 
         // Convert seconds to duration format
         function convertSeconds() {
+            if (updating) return;
+            updating = true;
+            
             const input = parseInt(document.getElementById('secondsInput').value) || 0;
             const output = document.getElementById('secondsOutput');
             
@@ -240,6 +274,57 @@
             } else {
                 output.value = timeStr;
             }
+            
+            updating = false;
+        }
+
+        // Convert duration format to seconds (reverse)
+        function convertSecondsReverse() {
+            if (updating) return;
+            updating = true;
+            
+            const input = document.getElementById('secondsOutput').value.trim();
+            const secondsInput = document.getElementById('secondsInput');
+            
+            if (!input) {
+                secondsInput.value = '0';
+                updating = false;
+                return;
+            }
+            
+            try {
+                let totalSeconds = 0;
+                
+                // Check for days format: "days: 1, 01:30:00"
+                const daysMatch = input.match(/days:\s*(\d+),\s*(.+)/);
+                if (daysMatch) {
+                    const days = parseInt(daysMatch[1]);
+                    const timeString = daysMatch[2];
+                    totalSeconds += days * 86400;
+                    
+                    const timeParts = timeString.split(':');
+                    if (timeParts.length === 3) {
+                        totalSeconds += parseInt(timeParts[0]) * 3600;
+                        totalSeconds += parseInt(timeParts[1]) * 60;
+                        totalSeconds += parseInt(timeParts[2]);
+                    }
+                } else {
+                    // Simple time format: "01:30:00"
+                    const timeParts = input.split(':');
+                    if (timeParts.length === 3) {
+                        totalSeconds = parseInt(timeParts[0]) * 3600 + parseInt(timeParts[1]) * 60 + parseInt(timeParts[2]);
+                    } else {
+                        // Assume it's just seconds
+                        totalSeconds = parseInt(input) || 0;
+                    }
+                }
+                
+                secondsInput.value = totalSeconds;
+            } catch (error) {
+                // Keep current value if parsing fails
+            }
+            
+            updating = false;
         }
 
         // Convert time to fractional hours
@@ -365,37 +450,53 @@
 
         // Convert decimal to hex
         function convertDecimal() {
+            if (updating) return;
+            updating = true;
+            
             const input = parseInt(document.getElementById('decimalInput').value);
             const output = document.getElementById('decimalOutput');
             
             if (isNaN(input)) {
                 output.value = '';
+                updating = false;
                 return;
             }
             
-            output.value = input.toString(16).toUpperCase();
+            output.value = input.toString(16).toLowerCase();
+            updating = false;
         }
 
-        // Convert hex to decimal
-        function convertHex() {
-            const input = document.getElementById('hexInput').value.trim();
-            const output = document.getElementById('hexOutput');
+        // Convert hex to decimal (reverse)
+        function convertDecimalReverse() {
+            if (updating) return;
+            updating = true;
+            
+            const input = document.getElementById('decimalOutput').value.trim();
+            const decimalInput = document.getElementById('decimalInput');
             
             if (!input) {
-                output.value = '';
+                decimalInput.value = '';
+                updating = false;
                 return;
             }
             
             try {
-                const decimal = parseInt(input, 16);
-                output.value = isNaN(decimal) ? 'Invalid hex' : decimal.toString();
+                // Remove spaces and handle both uppercase and lowercase
+                const cleanedInput = input.replace(/\s+/g, '');
+                const decimal = parseInt(cleanedInput, 16);
+                decimalInput.value = isNaN(decimal) ? '' : decimal.toString();
             } catch (error) {
-                output.value = 'Invalid hex';
+                // Keep current value if parsing fails
             }
+            
+            updating = false;
         }
 
         // URL encode
         function convertUrlEncode() {
+            if (updating) return;
+            updating = true;
+            
             const input = document.getElementById('urlEncodeInput').value;
             const output = document.getElementById('urlEncodeOutput');
             
@@ -404,30 +505,41 @@
             } catch (error) {
                 output.value = 'Error encoding';
             }
+            
+            updating = false;
         }
 
-        // URL decode
-        function convertUrlDecode() {
-            const input = document.getElementById('urlDecodeInput').value;
-            const output = document.getElementById('urlDecodeOutput');
+        // URL decode (reverse)
+        function convertUrlEncodeReverse() {
+            if (updating) return;
+            updating = true;
+            
+            const input = document.getElementById('urlEncodeOutput').value;
+            const urlInput = document.getElementById('urlEncodeInput');
             
             try {
-                output.value = decodeURIComponent(input);
+                urlInput.value = decodeURIComponent(input);
             } catch (error) {
-                output.value = 'Error decoding';
+                // Keep current value if parsing fails
             }
+            
+            updating = false;
         }
 
-        // Set up event listeners
+        // Set up event listeners for forward conversions
         document.getElementById('epochInput').addEventListener('input', convertEpoch);
         document.getElementById('secondsInput').addEventListener('input', convertSeconds);
         document.getElementById('timeInput').addEventListener('input', convertTime);
         document.getElementById('bytesInput').addEventListener('input', convertBytes);
         document.getElementById('cronInput').addEventListener('input', convertCron);
         document.getElementById('decimalInput').addEventListener('input', convertDecimal);
-        document.getElementById('hexInput').addEventListener('input', convertHex);
         document.getElementById('urlEncodeInput').addEventListener('input', convertUrlEncode);
-        document.getElementById('urlDecodeInput').addEventListener('input', convertUrlDecode);
+
+        // Set up event listeners for reverse conversions (bidirectional)
+        document.getElementById('epochOutput').addEventListener('input', convertEpochReverse);
+        document.getElementById('secondsOutput').addEventListener('input', convertSecondsReverse);
+        document.getElementById('decimalOutput').addEventListener('input', convertDecimalReverse);
+        document.getElementById('urlEncodeOutput').addEventListener('input', convertUrlEncodeReverse);
 
         // Initialize with current timestamp and convert all default values
         setCurrentTimestamp();
@@ -437,9 +549,7 @@
         convertBytes();
         convertCron();
         convertDecimal();
-        convertHex();
         convertUrlEncode();
-        convertUrlDecode();
     </script>
 </body>
 </html> 
