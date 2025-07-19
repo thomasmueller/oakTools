@@ -4,8 +4,8 @@
 // Import the converter functions
 const {
     convertXPathToSQL2,
-    parseXPath,
-    convertXPathExpression,
+    XPathParser,
+    convertCondition,
     buildSQL2Query
 } = require('./xpath-converter.js');
 
@@ -61,55 +61,72 @@ class TestRunner {
 // Create test runner instance
 const runner = new TestRunner();
 
-// Unit Tests for convertXPathExpression function
-runner.test('convertXPathExpression - fn:path() conversion', () => {
-    const result = convertXPathExpression('fn:path()');
+// Unit Tests for convertCondition function
+runner.test('convertCondition - fn:path() conversion', () => {
+    const result = convertCondition('fn:path()');
     runner.assertEqual(result, 'path(a)', 'Should convert fn:path() to path(a)');
 });
 
-runner.test('convertXPathExpression - jcr:first(@property) conversion', () => {
-    const result = convertXPathExpression('jcr:first(@vanityPath)');
+runner.test('convertCondition - jcr:first(@property) conversion', () => {
+    const result = convertCondition('jcr:first(@vanityPath)');
     runner.assertEqual(result, 'first([vanityPath])', 'Should convert jcr:first(@property) to first([property])');
 });
 
-runner.test('convertXPathExpression - @property conversion', () => {
-    const result = convertXPathExpression('@title');
-    runner.assertEqual(result, '[title]', 'Should convert @property to [property]');
+runner.test('convertCondition - @property conversion', () => {
+    const result = convertCondition('@title = "test"');
+    runner.assertEqual(result, '[title] = "test"', 'Should convert @property to [property]');
 });
 
-runner.test('convertXPathExpression - $variable conversion', () => {
-    const result = convertXPathExpression('$lastValue');
+runner.test('convertCondition - $variable conversion', () => {
+    const result = convertCondition('$lastValue');
     runner.assertEqual(result, '@lastValue', 'Should convert $variable to @variable');
 });
 
-runner.test('convertXPathExpression - @jcr:path conversion', () => {
-    const result = convertXPathExpression('@jcr:path');
-    runner.assertEqual(result, '[jcr:path]', 'Should convert @jcr:path to [jcr:path]');
+runner.test('convertCondition - @jcr:path conversion', () => {
+    const result = convertCondition('@jcr:path = "/content"');
+    runner.assertEqual(result, '[jcr:path] = "/content"', 'Should convert @jcr:path to [jcr:path]');
 });
 
-runner.test('convertXPathExpression - complex expression', () => {
-    const result = convertXPathExpression('jcr:first(@vanityPath) >= $lastValue');
+runner.test('convertCondition - complex expression', () => {
+    const result = convertCondition('jcr:first(@vanityPath) >= $lastValue');
     runner.assertEqual(result, 'first([vanityPath]) >= @lastValue', 'Should handle complex expressions');
 });
 
-// Unit Tests for parseXPath function
-runner.test('parseXPath - basic descendant path', () => {
-    const result = parseXPath('/jcr:root/content//element(*, nt:base)');
+// Unit Tests for XPathParser class
+runner.test('XPathParser - basic descendant path', () => {
+    const parser = new XPathParser('/jcr:root/content//element(*, nt:base)');
+    const result = parser.parse();
     runner.assertEqual(result.path, '/content', 'Should extract path correctly');
     runner.assertEqual(result.isDescendant, true, 'Should detect descendant relationship');
     runner.assertEqual(result.nodeType, 'nt:base', 'Should extract node type');
 });
 
-runner.test('parseXPath - condition parsing', () => {
-    const result = parseXPath('//*[@title="test"]');
+runner.test('XPathParser - condition parsing', () => {
+    const parser = new XPathParser('//*[@title="test"]');
+    const result = parser.parse();
     runner.assertEqual(result.conditions.length, 1, 'Should parse one condition');
     runner.assertEqual(result.conditions[0], '@title="test"', 'Should extract condition correctly');
 });
 
-runner.test('parseXPath - order by parsing', () => {
-    const result = parseXPath('//* order by fn:path()');
+runner.test('XPathParser - order by parsing', () => {
+    const parser = new XPathParser('//* order by fn:path()');
+    const result = parser.parse();
     runner.assertEqual(result.orderBy.length, 1, 'Should parse order by clause');
     runner.assertEqual(result.orderBy[0], 'path(a)', 'Should convert order by expression');
+});
+
+runner.test('XPathParser - order by with descending', () => {
+    const parser = new XPathParser('//* order by @prop descending');
+    const result = parser.parse();
+    runner.assertEqual(result.orderBy.length, 1, 'Should parse order by clause');
+    runner.assertEqual(result.orderBy[0], '[prop] desc', 'Should convert descending to desc');
+});
+
+runner.test('XPathParser - order by with ascending', () => {
+    const parser = new XPathParser('//* order by @prop ascending');
+    const result = parser.parse();
+    runner.assertEqual(result.orderBy.length, 1, 'Should parse order by clause');
+    runner.assertEqual(result.orderBy[0], '[prop] asc', 'Should convert ascending to asc');
 });
 
 // Integration Tests for convertXPathToSQL2 function
@@ -344,7 +361,7 @@ runner.test('Oak test - order by multiple properties with direction', () => {
     const input = '//element(*, my:type) order by @my:date descending, @my:title ascending';
     const expected = `select [jcr:path], [jcr:score], *
   from [my:type] as a
-  order by [my:date] descending, [my:title] ascending`;
+  order by [my:date] desc, [my:title] asc`;
     
     const result = convertXPathToSQL2(input);
     runner.assertEqual(result.trim(), expected.trim(), 'Should handle multiple properties with direction in order by');
