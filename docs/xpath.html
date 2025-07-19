@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XPath to SQL-2 Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .column {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
+        .right-column {
+            background-color: #f8f9fa;
+        }
+        .info {
+            color: #666;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>XPath to SQL-2 Converter</h1>
+    </div>
+    
+    <div class="container">
+        <div class="column">
+            <h2>XPath</h2>
+            <button onclick="convertXPath()">Convert to SQL-2</button>
+            <textarea id="xpathInput" placeholder="Enter your XPath query here...">/jcr:root/content//element(*, nt:base)[fn:path() >= $lastValue] order by fn:path()</textarea>
+            <div id="xpathError" class="error"></div>
+            <div id="xpathSuccess" class="success"></div>
+            <div class="info">Based on Apache Jackrabbit Oak XPath to SQL-2 conversion logic</div>
+        </div>
+        
+        <div class="column right-column">
+            <h2>SQL-2</h2>
+            <div style="height: 46px; margin-bottom: 10px;"></div>
+            <textarea id="sql2Output" placeholder="SQL-2 query will appear here..." readonly></textarea>
+            <div class="info">JCR-SQL2 query format</div>
+        </div>
+    </div>
+
+    <script>
+        function convertXPath() {
+            const xpathInput = document.getElementById('xpathInput');
+            const sql2Output = document.getElementById('sql2Output');
+            const xpathError = document.getElementById('xpathError');
+            const xpathSuccess = document.getElementById('xpathSuccess');
+            
+            xpathError.style.display = 'none';
+            xpathSuccess.style.display = 'none';
+            
+            try {
+                const xpath = xpathInput.value.trim();
+                if (xpath === '') {
+                    sql2Output.value = '';
+                    return;
+                }
+                
+                const sql2 = convertXPathToSQL2(xpath);
+                sql2Output.value = sql2;
+                xpathSuccess.textContent = 'XPath successfully converted to SQL-2!';
+                xpathSuccess.style.display = 'block';
+                
+            } catch (error) {
+                sql2Output.value = '';
+                xpathError.textContent = 'Error: ' + error.message;
+                xpathError.style.display = 'block';
+            }
+        }
+
+        function convertXPathToSQL2(xpath) {
+            // Handle special cases and prefixes
+            let query = xpath.trim();
+            let explain = false;
+            let measure = false;
+            
+            if (query.startsWith('explain ')) {
+                explain = true;
+                query = query.substring(8).trim();
+            }
+            
+            if (query.startsWith('measure ')) {
+                measure = true;
+                query = query.substring(8).trim();
+            }
+            
+            if (query === '') {
+                query = '//jcr:root';
+            }
+            
+            // Parse the main structure
+            const result = parseXPath(query);
+            
+            // Build SQL-2 query
+            let sql2 = buildSQL2Query(result);
+            
+            if (explain) {
+                sql2 = 'explain ' + sql2;
+            }
+            
+            if (measure) {
+                sql2 = 'measure ' + sql2;
+            }
+            
+            return sql2;
+        }
+
+        function parseXPath(xpath) {
+            const result = {
+                select: ['[jcr:path]', '[jcr:score]', '*'],
+                from: '[nt:base]',
+                alias: 'a',
+                where: [],
+                orderBy: [],
+                path: '',
+                nodeType: 'nt:base',
+                isDescendant: false,
+                conditions: []
+            };
+            
+            let query = xpath;
+            
+            // Handle /jcr:root prefix
+            if (query.startsWith('/jcr:root')) {
+                query = query.substring(9);
+                if (query.startsWith('/')) {
+                    query = query.substring(1);
+                    if (query.startsWith('/')) {
+                        // //
+                        query = query.substring(1);
+                        result.isDescendant = true;
+                    }
+                }
+            } else if (query.startsWith('//')) {
+                query = query.substring(2);
+                result.isDescendant = true;
+            } else if (query.startsWith('/')) {
+                query = query.substring(1);
+            }
+            
+            // Parse path segments
+            const segments = query.split('/');
+            let pathParts = [];
+            let currentSegment = '';
+            
+            for (let i = 0; i < segments.length; i++) {
+                const segment = segments[i];
+                
+                if (segment === '') {
+                    if (i > 0) {
+                        result.isDescendant = true;
+                    }
+                    continue;
+                }
+                
+                // Handle element() function
+                if (segment.startsWith('element(')) {
+                    const elementMatch = segment.match(/element\(([^,]*),\s*([^)]+)\)/);
+                    if (elementMatch) {
+                        const elementName = elementMatch[1].trim();
+                        const nodeType = elementMatch[2].trim();
+                        if (elementName !== '*' && elementName !== '') {
+                            pathParts.push(elementName);
+                        }
+                        if (nodeType && nodeType !== '*') {
+                            result.nodeType = nodeType;
+                            result.from = '[' + nodeType + ']';
+                        }
+                    }
+                } else if (segment.includes('[')) {
+                    // Handle conditions
+                    const conditionMatch = segment.match(/^([^[]*)\[(.+)\](.*)$/);
+                    if (conditionMatch) {
+                        const beforeCondition = conditionMatch[1];
+                        const condition = conditionMatch[2];
+                        const afterCondition = conditionMatch[3];
+                        
+                        if (beforeCondition && beforeCondition !== '*') {
+                            pathParts.push(beforeCondition);
+                        }
+                        
+                        // Parse condition
+                        result.conditions.push(condition);
+                        
+                        // Handle order by in the same segment
+                        if (afterCondition.includes('order by')) {
+                            const orderByMatch = afterCondition.match(/order by (.+)$/);
+                            if (orderByMatch) {
+                                parseOrderBy(orderByMatch[1], result);
+                            }
+                        }
+                    }
+                } else if (segment.includes('order by')) {
+                    // Handle order by
+                    const orderByMatch = segment.match(/order by (.+)$/);
+                    if (orderByMatch) {
+                        parseOrderBy(orderByMatch[1], result);
+                    }
+                } else if (segment === '*') {
+                    // Wildcard - don't add to path
+                } else if (segment.includes('(')) {
+                    // Handle functions like rep:excerpt
+                    handleSelectFunction(segment, result);
+                } else {
+                    pathParts.push(segment);
+                }
+            }
+            
+            // Handle order by at the end
+            const orderByMatch = xpath.match(/order by (.+)$/);
+            if (orderByMatch) {
+                parseOrderBy(orderByMatch[1], result);
+            }
+            
+            result.path = pathParts.join('/');
+            if (result.path && result.path !== '') {
+                result.path = '/' + result.path;
+            }
+            
+            return result;
+        }
+
+        function parseOrderBy(orderByClause, result) {
+            const orderItems = orderByClause.split(',');
+            for (let item of orderItems) {
+                item = item.trim();
+                if (item) {
+                    result.orderBy.push(convertXPathExpression(item));
+                }
+            }
+        }
+
+        function handleSelectFunction(segment, result) {
+            // Handle rep:excerpt and other select functions
+            if (segment.includes('rep:excerpt')) {
+                const excerptMatches = segment.match(/rep:excerpt\(([^)]+)\)/g);
+                if (excerptMatches) {
+                    // Replace * in select
+                    if (result.select.includes('*')) {
+                        const index = result.select.indexOf('*');
+                        result.select.splice(index, 1);
+                    }
+                    
+                    for (let match of excerptMatches) {
+                        const propMatch = match.match(/rep:excerpt\(([^)]+)\)/);
+                        if (propMatch) {
+                            const prop = propMatch[1].replace('@', '');
+                            result.select.push('[rep:excerpt(' + prop + ')]');
+                        }
+                    }
+                }
+            }
+        }
+
+        function convertXPathExpression(expr) {
+            expr = expr.trim();
+            
+            // Convert XPath functions and syntax to SQL-2
+            
+            // fn:path() -> path(a)
+            expr = expr.replace(/fn:path\(\)/g, 'path(a)');
+            
+            // jcr:first(@property) -> first([property])
+            expr = expr.replace(/jcr:first\((@\w+)\)/g, (match, prop) => {
+                return 'first([' + prop.substring(1) + '])';
+            });
+            
+            // @property -> [property]
+            expr = expr.replace(/@(\w+)/g, '[$1]');
+            
+            // $variable -> @variable
+            expr = expr.replace(/\$(\w+)/g, '@$1');
+            
+            // @jcr:path -> [jcr:path]
+            expr = expr.replace(/@jcr:path/g, '[jcr:path]');
+            
+            return expr;
+        }
+
+        function buildSQL2Query(result) {
+            let sql2 = 'select ';
+            
+            // SELECT clause
+            sql2 += result.select.join(', ');
+            
+            // FROM clause
+            sql2 += '\n  from ' + result.from + ' as ' + result.alias;
+            
+            // WHERE clause
+            const whereConditions = [];
+            
+            // Add parsed conditions
+            for (let condition of result.conditions) {
+                const convertedCondition = convertXPathExpression(condition);
+                whereConditions.push(convertedCondition);
+            }
+            
+            // Add path restrictions
+            if (result.path && result.path !== '/' && result.path !== '') {
+                if (result.isDescendant) {
+                    whereConditions.push(`isdescendantnode(${result.alias}, '${result.path}')`);
+                } else {
+                    whereConditions.push(`ischildnode(${result.alias}, '${result.path}')`);
+                }
+            } else if (result.isDescendant && result.path === '') {
+                // Handle // at root
+                whereConditions.push(`isdescendantnode(${result.alias}, '/')`);
+            }
+            
+            if (whereConditions.length > 0) {
+                sql2 += '\n  where ' + whereConditions.join('\n  and ');
+            }
+            
+            // ORDER BY clause
+            if (result.orderBy.length > 0) {
+                sql2 += '\n  order by ' + result.orderBy.join(', ');
+            }
+            
+            return sql2;
+        }
+
+        // Auto-convert on input change
+        document.getElementById('xpathInput').addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                document.getElementById('sql2Output').value = '';
+                document.getElementById('xpathError').style.display = 'none';
+                document.getElementById('xpathSuccess').style.display = 'none';
+            } else {
+                convertXPath();
+            }
+        });
+
+        // Initialize with default conversion
+        convertXPath();
+    </script>
+</body>
+</html> 
