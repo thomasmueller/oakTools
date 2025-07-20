@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index Diff</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .format-button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .format-diff-button {
+            padding: 12px 24px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .format-diff-button:hover {
+            background-color: #005a87;
+        }
+        .json-panels {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .json-panel {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .json-panel h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .json-textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .diff-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .diff-container h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .diff-content {
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            min-height: 100px;
+        }
+        .diff-added {
+            color: #28a745;
+            background-color: #d4edda;
+        }
+        .diff-removed {
+            color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>Index Diff</h1>
+    </div>
+    
+    <div class="container">
+        <div class="format-button-container">
+            <button class="format-diff-button" onclick="formatAndDiff()">Format and Diff</button>
+        </div>
+        
+        <div class="json-panels">
+            <div class="json-panel">
+                <h2>Left JSON</h2>
+                <textarea id="leftJson" class="json-textarea" placeholder="Enter JSON here..."></textarea>
+            </div>
+            
+            <div class="json-panel">
+                <h2>Right JSON</h2>
+                <textarea id="rightJson" class="json-textarea" placeholder="Enter JSON here..."></textarea>
+            </div>
+        </div>
+        
+        <div class="diff-container">
+            <h2>Diff Result</h2>
+            <div id="diffResult" class="diff-content">Click "Format and Diff" to see the differences between the two JSON structures.</div>
+            <div id="errorMessage" class="error" style="display: none;"></div>
+            <div id="successMessage" class="success" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="js/json-formatter.js"></script>
+    <script>
+        // Load default example JSON when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const leftExample = {
+                "/oak:index/test-1": {
+                    "type": "lucene",
+                    "test": 1
+                }
+            };
+            
+            const rightExample = {
+                "/oak:index/test-2": {
+                    "type": "lucene",
+                    "test": 2
+                }
+            };
+            
+            document.getElementById('leftJson').value = JSON.stringify(leftExample, null, 4);
+            document.getElementById('rightJson').value = JSON.stringify(rightExample, null, 4);
+        });
+
+        function formatAndDiff() {
+            const leftTextarea = document.getElementById('leftJson');
+            const rightTextarea = document.getElementById('rightJson');
+            const diffResult = document.getElementById('diffResult');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            try {
+                // Parse and format both JSON inputs
+                const leftRaw = leftTextarea.value.trim();
+                const rightRaw = rightTextarea.value.trim();
+                
+                if (leftRaw === '' || rightRaw === '') {
+                    throw new Error('Both JSON inputs must be provided');
+                }
+                
+                // Parse JSON to validate
+                const leftParsed = JSON.parse(leftRaw);
+                const rightParsed = JSON.parse(rightRaw);
+                
+                // Format both JSONs using the sortObjectKeys function from json-formatter.js
+                const leftSorted = sortObjectKeys(leftParsed);
+                const rightSorted = sortObjectKeys(rightParsed);
+                
+                // Update textareas with formatted JSON
+                leftTextarea.value = JSON.stringify(leftSorted, null, 4);
+                rightTextarea.value = JSON.stringify(rightSorted, null, 4);
+                
+                // Calculate and display diff
+                const diff = calculateIndexDiff(leftSorted, rightSorted);
+                diffResult.innerHTML = diff;
+                
+                if (diff.trim() === '') {
+                    diffResult.innerHTML = '<span style="color: #28a745;">No differences found - the JSON structures are identical.</span>';
+                }
+                
+                successMessage.textContent = 'JSON formatted and diff calculated successfully!';
+                successMessage.style.display = 'block';
+                
+            } catch (error) {
+                let errorText = 'Error: ';
+                if (error.message.includes('Unexpected token')) {
+                    errorText += 'Invalid JSON syntax';
+                } else if (error.message.includes('Unexpected end')) {
+                    errorText += 'Incomplete JSON structure';
+                } else {
+                    errorText += error.message;
+                }
+                
+                errorMessage.textContent = errorText;
+                errorMessage.style.display = 'block';
+                diffResult.innerHTML = 'Error occurred during formatting or diff calculation.';
+            }
+        }
+
+        function calculateIndexDiff(left, right) {
+            let diffLines = [];
+            
+            // Get all top-level keys from both objects - filter out properties that start with ":"
+            const leftKeys = Object.keys(left).filter(key => !key.startsWith(':'));
+            const rightKeys = Object.keys(right).filter(key => !key.startsWith(':'));
+            const allKeys = new Set([...leftKeys, ...rightKeys]);
+            
+            // Compare top-level keys
+            const topLevelRemovals = [];
+            const topLevelAdditions = [];
+            
+            leftKeys.forEach(key => {
+                if (!rightKeys.includes(key)) {
+                    topLevelRemovals.push(`<span class="diff-removed">- "${key}"</span>`);
+                }
+            });
+            
+            rightKeys.forEach(key => {
+                if (!leftKeys.includes(key)) {
+                    topLevelAdditions.push(`<span class="diff-added">+ "${key}"</span>`);
+                }
+            });
+            
+            // Add top-level key differences
+            diffLines.push(...topLevelRemovals, ...topLevelAdditions);
+            
+            // Compare children - treat as if top-level keys were the same
+            // We'll compare the values of the first key from each side
+            if (leftKeys.length > 0 && rightKeys.length > 0) {
+                const leftFirstKey = leftKeys[0];
+                const rightFirstKey = rightKeys[0];
+                
+                const leftValue = left[leftFirstKey];
+                const rightValue = right[rightFirstKey];
+                
+                // Deep compare the child objects
+                const childDiff = compareObjects(leftValue, rightValue, '');
+                if (childDiff.length > 0) {
+                    if (diffLines.length > 0) {
+                        diffLines.push(''); // Add empty line for separation
+                    }
+                    diffLines.push(...childDiff);
+                }
+            }
+            
+            // Clean up multiple consecutive empty lines
+            const cleanedLines = [];
+            let lastWasEmpty = false;
+            
+            diffLines.forEach(line => {
+                if (line === '') {
+                    if (!lastWasEmpty) {
+                        cleanedLines.push(line);
+                        lastWasEmpty = true;
+                    }
+                } else {
+                    cleanedLines.push(line);
+                    lastWasEmpty = false;
+                }
+            });
+            
+            return cleanedLines.join('\n');
+        }
+
+        function compareObjects(left, right, path) {
+            let diffLines = [];
+            
+            if (typeof left !== typeof right) {
+                diffLines.push(`<span class="diff-removed">- "${path}": ${JSON.stringify(left)}</span>`);
+                diffLines.push(`<span class="diff-added">+ "${path}": ${JSON.stringify(right)}</span>`);
+                return diffLines;
+            }
+            
+            if (typeof left !== 'object' || left === null || right === null) {
+                if (left !== right) {
+                    diffLines.push(`<span class="diff-removed">- "${path}": ${JSON.stringify(left)}</span>`);
+                    diffLines.push(`<span class="diff-added">+ "${path}": ${JSON.stringify(right)}</span>`);
+                }
+                return diffLines;
+            }
+            
+            if (Array.isArray(left) || Array.isArray(right)) {
+                // Treat arrays as atomic values - compare them as whole units
+                if (JSON.stringify(left) !== JSON.stringify(right)) {
+                    diffLines.push(`<span class="diff-removed">- "${path}": ${formatJSONCustom(left, 0)}</span>`);
+                    diffLines.push(`<span class="diff-added">+ "${path}": ${formatJSONCustom(right, 0)}</span>`);
+                }
+                return diffLines;
+            }
+            
+            // Compare objects - filter out properties that start with ":"
+            const leftKeys = Object.keys(left).filter(key => !key.startsWith(':'));
+            const rightKeys = Object.keys(right).filter(key => !key.startsWith(':'));
+            const allKeys = new Set([...leftKeys, ...rightKeys]);
+            
+            // Separate properties from children, similar to sortObjectKeys
+            const propertyKeys = [];
+            const childKeys = [];
+            
+            allKeys.forEach(key => {
+                // Check if this key represents a child object in either left or right
+                const leftValue = leftKeys.includes(key) ? left[key] : undefined;
+                const rightValue = rightKeys.includes(key) ? right[key] : undefined;
+                
+                const isLeftObject = leftValue !== null && typeof leftValue === 'object' && !Array.isArray(leftValue);
+                const isRightObject = rightValue !== null && typeof rightValue === 'object' && !Array.isArray(rightValue);
+                
+                if (isLeftObject || isRightObject) {
+                    childKeys.push(key);
+                } else {
+                    propertyKeys.push(key);
+                }
+            });
+            
+            // Process properties first, then children
+            const allKeysOrdered = [...propertyKeys, ...childKeys];
+            
+            allKeysOrdered.forEach((key, index) => {
+                const leftHasKey = leftKeys.includes(key);
+                const rightHasKey = rightKeys.includes(key);
+                const currentPath = path ? `${path}.${key}` : key;
+                
+                if (!leftHasKey) {
+                    diffLines.push(`<span class="diff-added">+ "${currentPath}": ${JSON.stringify(right[key])}</span>`);
+                } else if (!rightHasKey) {
+                    diffLines.push(`<span class="diff-removed">- "${currentPath}": ${JSON.stringify(left[key])}</span>`);
+                } else {
+                    diffLines.push(...compareObjects(left[key], right[key], currentPath));
+                }
+                
+                // Add spacing after each key group (except the last one)
+                if (index < allKeysOrdered.length - 1) {
+                    diffLines.push('');
+                }
+            });
+            
+            return diffLines;
+        }
+    </script>
+</body>
+</html> 
