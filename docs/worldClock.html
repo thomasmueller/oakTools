@@ -57,12 +57,23 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 30px;
+            table-layout: fixed;
         }
         
         .clock-table th, .clock-table td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
+        }
+        
+        .clock-table th:first-child,
+        .clock-table td:first-child {
+            width: 20%;
+        }
+        
+        .clock-table th:not(:first-child),
+        .clock-table td:not(:first-child) {
+            width: 20%;
         }
         
         .clock-table th {
@@ -76,6 +87,17 @@
             width: 150px;
         }
         
+        .time-cell {
+            white-space: nowrap;
+        }
+        
+        .time-icon {
+            font-size: 16px;
+            margin-right: 8px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
         .time-input {
             padding: 8px;
             border: 1px solid #ddd;
@@ -83,6 +105,7 @@
             width: 100px;
             font-family: monospace;
             font-size: 14px;
+            vertical-align: middle;
         }
         
         .time-input:focus {
@@ -216,46 +239,46 @@
             </thead>
             <tbody>
                 <tr>
-                    <td class="timezone-label">US East (EST/EDT)</td>
-                    <td><input type="time" class="time-input" id="usEast" onchange="convertTime('usEast')"></td>
-                    <td><input type="time" class="time-input" id="usEastAlt" readonly></td>
-                    <td><input type="time" class="time-input" id="usEastMarch" readonly></td>
-                    <td><input type="time" class="time-input" id="usEastOct" readonly></td>
+                    <td class="timezone-label">US West (PST/PDT)</td>
+                    <td class="time-cell"><span class="time-icon" id="usWestIcon">☀️</span><input type="time" class="time-input" id="usWest" onchange="convertTime('usWest')"></td>
+                    <td class="time-cell"><span class="time-icon" id="usWestAltIcon">☀️</span><input type="time" class="time-input" id="usWestAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usWestMarchIcon">☀️</span><input type="time" class="time-input" id="usWestMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usWestOctIcon">☀️</span><input type="time" class="time-input" id="usWestOct" readonly></td>
                 </tr>
                 <tr>
-                    <td class="timezone-label">US West (PST/PDT)</td>
-                    <td><input type="time" class="time-input" id="usWest" onchange="convertTime('usWest')"></td>
-                    <td><input type="time" class="time-input" id="usWestAlt" readonly></td>
-                    <td><input type="time" class="time-input" id="usWestMarch" readonly></td>
-                    <td><input type="time" class="time-input" id="usWestOct" readonly></td>
+                    <td class="timezone-label">US East (EST/EDT)</td>
+                    <td class="time-cell"><span class="time-icon" id="usEastIcon">☀️</span><input type="time" class="time-input" id="usEast" onchange="convertTime('usEast')"></td>
+                    <td class="time-cell"><span class="time-icon" id="usEastAltIcon">☀️</span><input type="time" class="time-input" id="usEastAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usEastMarchIcon">☀️</span><input type="time" class="time-input" id="usEastMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usEastOctIcon">☀️</span><input type="time" class="time-input" id="usEastOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">UTC</td>
-                    <td><input type="time" class="time-input" id="utc" onchange="convertTime('utc')"></td>
-                    <td><input type="time" class="time-input" id="utcAlt" readonly></td>
-                    <td><input type="time" class="time-input" id="utcMarch" readonly></td>
-                    <td><input type="time" class="time-input" id="utcOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="utcIcon">☀️</span><input type="time" class="time-input" id="utc" onchange="convertTime('utc')"></td>
+                    <td class="time-cell"><span class="time-icon" id="utcAltIcon">☀️</span><input type="time" class="time-input" id="utcAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="utcMarchIcon">☀️</span><input type="time" class="time-input" id="utcMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="utcOctIcon">☀️</span><input type="time" class="time-input" id="utcOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">Central Europe (CET/CEST)</td>
-                    <td><input type="time" class="time-input" id="centralEurope" onchange="convertTime('centralEurope')"></td>
-                    <td><input type="time" class="time-input" id="centralEuropeAlt" readonly></td>
-                    <td><input type="time" class="time-input" id="centralEuropeMarch" readonly></td>
-                    <td><input type="time" class="time-input" id="centralEuropeOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeIcon">☀️</span><input type="time" class="time-input" id="centralEurope" onchange="convertTime('centralEurope')"></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeAltIcon">☀️</span><input type="time" class="time-input" id="centralEuropeAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeMarchIcon">☀️</span><input type="time" class="time-input" id="centralEuropeMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeOctIcon">☀️</span><input type="time" class="time-input" id="centralEuropeOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">Eastern Europe (EET/EEST)</td>
-                    <td><input type="time" class="time-input" id="easternEurope" onchange="convertTime('easternEurope')"></td>
-                    <td><input type="time" class="time-input" id="easternEuropeAlt" readonly></td>
-                    <td><input type="time" class="time-input" id="easternEuropeMarch" readonly></td>
-                    <td><input type="time" class="time-input" id="easternEuropeOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeIcon">☀️</span><input type="time" class="time-input" id="easternEurope" onchange="convertTime('easternEurope')"></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeAltIcon">☀️</span><input type="time" class="time-input" id="easternEuropeAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeMarchIcon">☀️</span><input type="time" class="time-input" id="easternEuropeMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeOctIcon">☀️</span><input type="time" class="time-input" id="easternEuropeOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">India (IST)</td>
-                    <td><input type="time" class="time-input" id="india" onchange="convertTime('india')"></td>
-                    <td><input type="time" class="time-input" id="indiaAlt" readonly></td>
-                    <td><input type="time" class="time-input" id="indiaMarch" readonly></td>
-                    <td><input type="time" class="time-input" id="indiaOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaIcon">☀️</span><input type="time" class="time-input" id="india" onchange="convertTime('india')"></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaAltIcon">☀️</span><input type="time" class="time-input" id="indiaAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaMarchIcon">☀️</span><input type="time" class="time-input" id="indiaMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaOctIcon">☀️</span><input type="time" class="time-input" id="indiaOct" readonly></td>
                 </tr>
             </tbody>
         </table>
@@ -278,6 +301,32 @@
 
         // Global offset for scheduling (in hours)
         let timeOffset = 0;
+
+        // Get time-of-day icon based on hour (24-hour format)
+        function getTimeOfDayIcon(hour) {
+            if (hour >= 6 && hour < 8) {
+                return '🌅'; // Sunrise
+            } else if (hour >= 8 && hour < 18) {
+                return '☀️'; // Day/Sun
+            } else if (hour >= 18 && hour < 22) {
+                return '🌇'; // Sunset
+            } else {
+                return '🌙'; // Night/Moon
+            }
+        }
+
+        // Update time-of-day icons for a timezone
+        function updateTimeIcons(timezoneId, winterTime, summerTime, mismatch1Time, mismatch2Time) {
+            const winterHour = parseInt(winterTime.split(':')[0]);
+            const summerHour = parseInt(summerTime.split(':')[0]);
+            const mismatch1Hour = parseInt(mismatch1Time.split(':')[0]);
+            const mismatch2Hour = parseInt(mismatch2Time.split(':')[0]);
+
+            document.getElementById(timezoneId + 'Icon').textContent = getTimeOfDayIcon(winterHour);
+            document.getElementById(timezoneId + 'AltIcon').textContent = getTimeOfDayIcon(summerHour);
+            document.getElementById(timezoneId + 'MarchIcon').textContent = getTimeOfDayIcon(mismatch1Hour);
+            document.getElementById(timezoneId + 'OctIcon').textContent = getTimeOfDayIcon(mismatch2Hour);
+        }
 
         // Adjust time offset for scheduling
         function adjustOffset(delta) {
@@ -511,6 +560,9 @@
                     const currentTime = `${String(resultHours).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')}`;
                     document.getElementById(tz + 'March').value = currentTime;
                     document.getElementById(tz + 'Oct').value = currentTime;
+                    
+                    // Update time-of-day icons
+                    updateTimeIcons(tz, winterTime, summerTime, currentTime, currentTime);
                 }
             });
         }
@@ -620,6 +672,9 @@
                 document.getElementById(tz + 'Alt').value = summerTime;
                 document.getElementById(tz + 'March').value = mismatch1Time;
                 document.getElementById(tz + 'Oct').value = mismatch2Time;
+                
+                // Update time-of-day icons
+                updateTimeIcons(tz, winterTime, summerTime, mismatch1Time, mismatch2Time);
             });
         }
         
@@ -738,8 +793,8 @@
         // Find where to insert timezone based on UTC offset
         function findInsertPosition(offset) {
             const offsets = [
-                { id: 'usWest', offset: -8 },    // PST
-                { id: 'usEast', offset: -5 },    // EST  
+                { id: 'usWest', offset: -8 },    // PST (now first)
+                { id: 'usEast', offset: -5 },    // EST (now second)
                 { id: 'utc', offset: 0 },        // UTC
                 { id: 'centralEurope', offset: 1 }, // CET
                 { id: 'easternEurope', offset: 2 }, // EET
@@ -765,10 +820,10 @@
             
             row.innerHTML = `
                 <td class="timezone-label">${timezoneName}</td>
-                <td><input type="time" class="time-input" id="${timezoneId}" onchange="convertTime('${timezoneId}')"></td>
-                <td><input type="time" class="time-input" id="${timezoneId}Alt" readonly></td>
-                <td><input type="time" class="time-input" id="${timezoneId}March" readonly></td>
-                <td><input type="time" class="time-input" id="${timezoneId}Oct" readonly></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}Icon">☀️</span><input type="time" class="time-input" id="${timezoneId}" onchange="convertTime('${timezoneId}')"></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}AltIcon">☀️</span><input type="time" class="time-input" id="${timezoneId}Alt" readonly></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}MarchIcon">☀️</span><input type="time" class="time-input" id="${timezoneId}March" readonly></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}OctIcon">☀️</span><input type="time" class="time-input" id="${timezoneId}Oct" readonly></td>
             `;
             return row;
         }

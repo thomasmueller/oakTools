@@ -141,6 +141,10 @@
                     <div class="converter-label">URL Encode:</div>
                     <input type="text" class="converter-input" id="urlEncodeInput" value="Hello World & Friends!" placeholder="Text to encode">
                 </div>
+                <div class="converter-row">
+                    <div class="converter-label">Celsius:</div>
+                    <input type="number" class="converter-input" id="celsiusInput" value="20" placeholder="Temperature in Celsius">
+                </div>
             </div>
         </div>
         
@@ -173,6 +177,10 @@
                 <div class="converter-row">
                     <div class="converter-label">URL Encoded:</div>
                     <input type="text" class="converter-output editable" id="urlEncodeOutput" placeholder="e.g. Hello%20World">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Fahrenheit:</div>
+                    <input type="number" class="converter-output editable" id="celsiusOutput" placeholder="Temperature in Fahrenheit">
                 </div>
             </div>
         </div>
@@ -526,6 +534,44 @@
             updating = false;
         }
 
+        // Convert Celsius to Fahrenheit
+        function convertCelsius() {
+            if (updating) return;
+            updating = true;
+            
+            const input = parseFloat(document.getElementById('celsiusInput').value);
+            const output = document.getElementById('celsiusOutput');
+            
+            if (isNaN(input)) {
+                output.value = '';
+                updating = false;
+                return;
+            }
+            
+            const fahrenheit = (input * 9/5) + 32;
+            output.value = Math.round(fahrenheit);
+            updating = false;
+        }
+
+        // Convert Fahrenheit to Celsius (reverse)
+        function convertCelsiusReverse() {
+            if (updating) return;
+            updating = true;
+            
+            const input = parseFloat(document.getElementById('celsiusOutput').value);
+            const celsiusInput = document.getElementById('celsiusInput');
+            
+            if (isNaN(input)) {
+                celsiusInput.value = '';
+                updating = false;
+                return;
+            }
+            
+            const celsius = (input - 32) * 5/9;
+            celsiusInput.value = Math.round(celsius);
+            updating = false;
+        }
+
         // Set up event listeners for forward conversions
         document.getElementById('epochInput').addEventListener('input', convertEpoch);
         document.getElementById('secondsInput').addEventListener('input', convertSeconds);
@@ -534,12 +580,14 @@
         document.getElementById('cronInput').addEventListener('input', convertCron);
         document.getElementById('decimalInput').addEventListener('input', convertDecimal);
         document.getElementById('urlEncodeInput').addEventListener('input', convertUrlEncode);
+        document.getElementById('celsiusInput').addEventListener('input', convertCelsius);
 
         // Set up event listeners for reverse conversions (bidirectional)
         document.getElementById('epochOutput').addEventListener('input', convertEpochReverse);
         document.getElementById('secondsOutput').addEventListener('input', convertSecondsReverse);
         document.getElementById('decimalOutput').addEventListener('input', convertDecimalReverse);
         document.getElementById('urlEncodeOutput').addEventListener('input', convertUrlEncodeReverse);
+        document.getElementById('celsiusOutput').addEventListener('input', convertCelsiusReverse);
 
         // Initialize with current timestamp and convert all default values
         setCurrentTimestamp();
@@ -550,6 +598,7 @@
         convertCron();
         convertDecimal();
         convertUrlEncode();
+        convertCelsius();
     </script>
 </body>
 </html> 
