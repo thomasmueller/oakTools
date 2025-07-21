@@ -12,12 +12,33 @@
             color: #333;
         }
         .container {
-            max-width: 600px;
+            max-width: 1200px;
             margin: 0 auto;
             background-color: white;
             padding: 40px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .columns {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .column {
+            flex: 1;
+        }
+        
+        @media (max-width: 700px) {
+            .columns {
+                flex-direction: column;
+                gap: 25px;
+            }
+            
+            .container {
+                max-width: 600px;
+                padding: 20px;
+            }
         }
         h1 {
             color: #333;
@@ -67,30 +88,39 @@
     <div class="container">
         <h1>Oak Tools</h1>
         
-        <div class="section-container">
-            <div class="section-header">Indexing</div>
-            <ul>
-                <li><a href="indexDefGenerator.html">Index Definition Generator</a></li>
-                <li><a href="indexDiff.html">Index Definition Diff</a></li>
-                <li><a href="indexDef.html">Index Definition Converter</a></li>
-                <li><a href="xpath.html">XPath to SQL-2 Converter</a></li>
-            </ul>
-        </div>
-        
-        <div class="section-container">
-            <div class="section-header">General</div>
-            <ul>
-                <li><a href="json.html">JSON Formatter</a></li>
-                <li><a href="base64.html">Base64 Converter</a></li>
-                <li><a href="converters.html">Unit Converter</a></li>
-            </ul>
-        </div>
-        
-        <div class="section-container">
-            <div class="section-header">Document Store</div>
-            <ul>
-                <li><a href="revision.html">Revision Formatter</a></li>
-            </ul>
+        <div class="columns">
+            <div class="column">
+                <div class="section-container">
+                    <div class="section-header">Indexing</div>
+                    <ul>
+                        <li><a href="indexDefGenerator.html">Index Definition Generator</a></li>
+                        <li><a href="indexDiff.html">Index Definition Diff</a></li>
+                        <li><a href="indexDef.html">Index Definition Converter</a></li>
+                        <li><a href="xpath.html">XPath to SQL-2 Converter</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="column">
+                <div class="section-container">
+                    <div class="section-header">General</div>
+                    <ul>
+                        <li><a href="json.html">JSON Formatter</a></li>
+                        <li><a href="base64.html">Base64 Converter</a></li>
+                        <li><a href="converters.html">Unit Converter</a></li>
+                        <li><a href="worldClock.html">World Clock</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="column">
+                <div class="section-container">
+                    <div class="section-header">Document Store</div>
+                    <ul>
+                        <li><a href="revision.html">Revision Formatter</a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </body>

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Clock - Time Zone Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        
+        h1 {
+            color: #333;
+            margin: 0;
+        }
+        
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .clock-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        .clock-table th, .clock-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .clock-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .timezone-label {
+            font-weight: bold;
+            width: 150px;
+        }
+        
+        .time-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .time-input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        
+        .dst-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .dst-info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .dst-period {
+            margin: 10px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+
+        
+        .current-time {
+            text-align: center;
+            margin: 0 0 20px 0;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .offset-button {
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .offset-button:hover {
+            background-color: #005a87;
+        }
+        
+        .offset-display {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-family: monospace;
+            font-size: 14px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .browser-timezone-row {
+            background-color: #e3f2fd;
+        }
+        
+        .browser-timezone-row .timezone-label {
+            font-weight: bold;
+            color: #1976d2;
+        }
+        
+        .browser-timezone-row .time-input {
+            border-color: #2196f3;
+            background-color: #f8fcff;
+        }
+        
+        .highlighted-column {
+            background-color: #fff3e0;
+        }
+        
+        .highlighted-column .time-input {
+            border-color: #ff9800;
+            background-color: #fffdf7;
+            font-weight: bold;
+        }
+        
+        .current-time-column {
+            background-color: #e3f2fd;
+        }
+        
+        .current-time-column .time-input {
+            border-color: #2196f3;
+            background-color: #f8fcff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>World Clock - Time Zone Converter</h1>
+    </div>
+    
+    <div class="container">
+        
+        <div class="current-time">
+            <button class="offset-button" onclick="adjustOffset(-1)">-</button>
+            <div class="offset-display" id="offsetDisplay">+0h</div>
+            <button class="offset-button" onclick="adjustOffset(1)">+</button>
+            <strong>Current Local Time: <span id="currentTime"></span></strong>
+        </div>
+        
+        <table class="clock-table">
+            <thead>
+                <tr>
+                    <th>Timezone</th>
+                    <th>Time (Winter)</th>
+                    <th>Time (Summer)</th>
+                    <th id="mismatch1Header">Mismatch 1</th>
+                    <th id="mismatch2Header">Mismatch 2</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="timezone-label">US East (EST/EDT)</td>
+                    <td><input type="time" class="time-input" id="usEast" onchange="convertTime('usEast')"></td>
+                    <td><input type="time" class="time-input" id="usEastAlt" readonly></td>
+                    <td><input type="time" class="time-input" id="usEastMarch" readonly></td>
+                    <td><input type="time" class="time-input" id="usEastOct" readonly></td>
+                </tr>
+                <tr>
+                    <td class="timezone-label">US West (PST/PDT)</td>
+                    <td><input type="time" class="time-input" id="usWest" onchange="convertTime('usWest')"></td>
+                    <td><input type="time" class="time-input" id="usWestAlt" readonly></td>
+                    <td><input type="time" class="time-input" id="usWestMarch" readonly></td>
+                    <td><input type="time" class="time-input" id="usWestOct" readonly></td>
+                </tr>
+                <tr>
+                    <td class="timezone-label">UTC</td>
+                    <td><input type="time" class="time-input" id="utc" onchange="convertTime('utc')"></td>
+                    <td><input type="time" class="time-input" id="utcAlt" readonly></td>
+                    <td><input type="time" class="time-input" id="utcMarch" readonly></td>
+                    <td><input type="time" class="time-input" id="utcOct" readonly></td>
+                </tr>
+                <tr>
+                    <td class="timezone-label">Central Europe (CET/CEST)</td>
+                    <td><input type="time" class="time-input" id="centralEurope" onchange="convertTime('centralEurope')"></td>
+                    <td><input type="time" class="time-input" id="centralEuropeAlt" readonly></td>
+                    <td><input type="time" class="time-input" id="centralEuropeMarch" readonly></td>
+                    <td><input type="time" class="time-input" id="centralEuropeOct" readonly></td>
+                </tr>
+                <tr>
+                    <td class="timezone-label">Eastern Europe (EET/EEST)</td>
+                    <td><input type="time" class="time-input" id="easternEurope" onchange="convertTime('easternEurope')"></td>
+                    <td><input type="time" class="time-input" id="easternEuropeAlt" readonly></td>
+                    <td><input type="time" class="time-input" id="easternEuropeMarch" readonly></td>
+                    <td><input type="time" class="time-input" id="easternEuropeOct" readonly></td>
+                </tr>
+                <tr>
+                    <td class="timezone-label">India (IST)</td>
+                    <td><input type="time" class="time-input" id="india" onchange="convertTime('india')"></td>
+                    <td><input type="time" class="time-input" id="indiaAlt" readonly></td>
+                    <td><input type="time" class="time-input" id="indiaMarch" readonly></td>
+                    <td><input type="time" class="time-input" id="indiaOct" readonly></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="dst-info">
+            <!-- Content will be dynamically generated by updateDSTInfo() -->
+        </div>
+    </div>
+
+    <script>
+        // Timezone offsets in hours from UTC
+        const timezones = {
+            usEast: { standard: -5, daylight: -4, name: 'US East' },
+            usWest: { standard: -8, daylight: -7, name: 'US West' },
+            utc: { standard: 0, daylight: 0, name: 'UTC' },
+            centralEurope: { standard: 1, daylight: 2, name: 'Central Europe' },
+            easternEurope: { standard: 2, daylight: 3, name: 'Eastern Europe' },
+            india: { standard: 5.5, daylight: 5.5, name: 'India' }
+        };
+
+        // Global offset for scheduling (in hours)
+        let timeOffset = 0;
+
+        // Adjust time offset for scheduling
+        function adjustOffset(delta) {
+            timeOffset += delta;
+            updateOffsetDisplay();
+            setCurrentTime(); // Update all times with new offset
+        }
+
+        // Update the offset display
+        function updateOffsetDisplay() {
+            const offsetElement = document.getElementById('offsetDisplay');
+            const sign = timeOffset >= 0 ? '+' : '';
+            offsetElement.textContent = sign + timeOffset + 'h';
+        }
+
+        // Update current time display
+        function updateCurrentTime() {
+            const now = new Date();
+            // Apply the time offset for display
+            const offsetTime = new Date(now.getTime() + timeOffset * 60 * 60 * 1000);
+            const isoDate = offsetTime.getFullYear() + '-' + 
+                          String(offsetTime.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(offsetTime.getDate()).padStart(2, '0');
+            const time = offsetTime.toLocaleTimeString();
+            document.getElementById('currentTime').textContent = isoDate + ' ' + time;
+        }
+
+        // Check if DST is active for US and Europe
+        function isDSTActive(date, region) {
+            const year = date.getFullYear();
+            
+            if (region === 'us') {
+                // US: Second Sunday in March to First Sunday in November
+                const marchSecondSunday = getUSMarchDSTStart(year);
+                const novemberFirstSunday = getUSNovemberDSTEnd(year);
+                
+                return date >= marchSecondSunday && date < novemberFirstSunday;
+            } else if (region === 'europe') {
+                // Europe: Last Sunday in March to Last Sunday in October
+                const marchLastSunday = getEuropeMarchDSTStart(year);
+                const octoberLastSunday = getEuropeOctoberDSTEnd(year);
+                
+                return date >= marchLastSunday && date < octoberLastSunday;
+            }
+            
+            return false;
+        }
+        
+        // Calculate US DST start (Second Sunday in March)
+        function getUSMarchDSTStart(year) {
+            const marchSecondSunday = new Date(year, 2, 8);
+            marchSecondSunday.setDate(8 + (7 - marchSecondSunday.getDay()) % 7);
+            return marchSecondSunday;
+        }
+        
+        // Calculate US DST end (First Sunday in November)  
+        function getUSNovemberDSTEnd(year) {
+            const novemberFirstSunday = new Date(year, 10, 1);
+            novemberFirstSunday.setDate(1 + (7 - novemberFirstSunday.getDay()) % 7);
+            return novemberFirstSunday;
+        }
+        
+        // Calculate Europe DST start (Last Sunday in March)
+        function getEuropeMarchDSTStart(year) {
+            const marchLastSunday = new Date(year, 2, 31);
+            marchLastSunday.setDate(31 - (marchLastSunday.getDay() || 7) + 1);
+            return marchLastSunday;
+        }
+        
+        // Calculate Europe DST end (Last Sunday in October)
+        function getEuropeOctoberDSTEnd(year) {
+            const octoberLastSunday = new Date(year, 9, 31);
+            octoberLastSunday.setDate(31 - (octoberLastSunday.getDay() || 7) + 1);
+            return octoberLastSunday;
+        }
+        
+        // Calculate DST mismatch periods and representative dates
+        function getDSTMismatchPeriods(year) {
+            const usMarchStart = getUSMarchDSTStart(year);
+            const europeMarchStart = getEuropeMarchDSTStart(year);
+            const europeOctEnd = getEuropeOctoberDSTEnd(year);
+            const usNovEnd = getUSNovemberDSTEnd(year);
+            
+            // Mismatch 1: US starts DST before Europe (US DST start to Europe DST start)
+            const mismatch1Start = usMarchStart;
+            const mismatch1End = europeMarchStart;
+            const mismatch1Date = new Date(mismatch1Start.getTime() + 24 * 60 * 60 * 1000); // Day after US starts
+            
+            // Mismatch 2: Europe ends DST before US (Europe DST end to US DST end)  
+            const mismatch2Start = europeOctEnd;
+            const mismatch2End = usNovEnd;
+            const mismatch2Date = new Date(mismatch2Start.getTime() + 24 * 60 * 60 * 1000); // Day after Europe ends
+            
+            return {
+                mismatch1: {
+                    start: mismatch1Start,
+                    end: mismatch1End,
+                    representativeDate: mismatch1Date,
+                    description: formatDateRange(mismatch1Start, mismatch1End)
+                },
+                mismatch2: {
+                    start: mismatch2Start,
+                    end: mismatch2End,
+                    representativeDate: mismatch2Date,
+                    description: formatDateRange(mismatch2Start, mismatch2End)
+                }
+            };
+        }
+        
+        // Format date range for display
+        function formatDateRange(startDate, endDate) {
+            const startStr = startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+            const endStr = endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+            return `${startStr} - ${endStr}`;
+        }
+        
+        // Format date for column header
+        function formatDateForHeader(date) {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Get current offset for a timezone
+        function getCurrentOffset(timezone, useAlternative = false) {
+            const now = new Date();
+            const tz = timezones[timezone];
+            
+            if (timezone === 'india' || timezone === 'utc') {
+                return tz.standard;
+            }
+            
+            let useDST, useEuropeDST;
+            
+            if (useAlternative) {
+                // For alternative column, show what happens during DST mismatches
+                useDST = !isDSTActive(now, 'us');
+                useEuropeDST = !isDSTActive(now, 'europe');
+            } else {
+                useDST = isDSTActive(now, 'us');
+                useEuropeDST = isDSTActive(now, 'europe');
+            }
+            
+            if (timezone === 'usEast' || timezone === 'usWest') {
+                return useDST ? tz.daylight : tz.standard;
+            } else if (timezone === 'centralEurope' || timezone === 'easternEurope') {
+                return useEuropeDST ? tz.daylight : tz.standard;
+            }
+            
+            return tz.standard;
+        }
+
+        // Convert time from one timezone to all others using proper timezone APIs
+        function convertTime(sourceTimezone) {
+            const sourceInput = document.getElementById(sourceTimezone);
+            const timeValue = sourceInput.value;
+            
+            if (!timeValue) return;
+            
+            const [inputHours, inputMinutes] = timeValue.split(':').map(Number);
+            
+            // Update all other timezones
+            Object.keys(timezones).forEach(tz => {
+                if (tz !== sourceTimezone) {
+                    // First convert the input time to the current time in the target timezone
+                    const now = new Date();
+                    const currentTimeInTarget = now.toLocaleTimeString('en-US', { 
+                        timeZone: getTimezoneName(tz), 
+                        hour12: false, 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    
+                    const [currentTargetHours, currentTargetMinutes] = currentTimeInTarget.split(':').map(Number);
+                    
+                    // Calculate the time difference between current times
+                    const currentTimeInSource = now.toLocaleTimeString('en-US', { 
+                        timeZone: getTimezoneName(sourceTimezone), 
+                        hour12: false, 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    
+                    const [currentSourceHours, currentSourceMinutes] = currentTimeInSource.split(':').map(Number);
+                    
+                    // Calculate the offset
+                    const sourceMinutesTotal = currentSourceHours * 60 + currentSourceMinutes;
+                    const targetMinutesTotal = currentTargetHours * 60 + currentTargetMinutes;
+                    let offsetMinutes = targetMinutesTotal - sourceMinutesTotal;
+                    
+                    // Handle day boundary crossings
+                    if (offsetMinutes > 12 * 60) offsetMinutes -= 24 * 60;
+                    if (offsetMinutes < -12 * 60) offsetMinutes += 24 * 60;
+                    
+                    // Apply the offset to the input time
+                    const inputMinutesTotal = inputHours * 60 + inputMinutes;
+                    let targetMinutesTotalResult = inputMinutesTotal + offsetMinutes;
+                    
+                    // Handle day boundary
+                    if (targetMinutesTotalResult < 0) targetMinutesTotalResult += 24 * 60;
+                    if (targetMinutesTotalResult >= 24 * 60) targetMinutesTotalResult -= 24 * 60;
+                    
+                    const resultHours = Math.floor(targetMinutesTotalResult / 60);
+                    const resultMinutes = targetMinutesTotalResult % 60;
+                    
+                    // Determine if target timezone is currently in DST
+                    const currentlyInDST = isDSTActive(now, getRegionForTimezone(tz));
+                    
+                    // Calculate winter and summer times
+                    let winterHours = resultHours;
+                    let summerHours = resultHours;
+                    
+                    // For timezones that use DST
+                    if (tz !== 'utc' && tz !== 'india') {
+                        if (currentlyInDST) {
+                            // Currently in DST, so winter time is 1 hour earlier
+                            winterHours = resultHours - 1;
+                            if (winterHours < 0) winterHours += 24;
+                        } else {
+                            // Currently in standard time, so summer time is 1 hour later
+                            summerHours = resultHours + 1;
+                            if (summerHours >= 24) summerHours -= 24;
+                        }
+                    }
+                    
+                    const winterTime = `${String(winterHours).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')}`;
+                    const summerTime = `${String(summerHours).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')}`;
+                    
+                    document.getElementById(tz).value = winterTime;
+                    document.getElementById(tz + 'Alt').value = summerTime;
+                    
+                    // For mismatch periods, use the current timezone conversion result
+                    const currentTime = `${String(resultHours).padStart(2, '0')}:${String(resultMinutes).padStart(2, '0')}`;
+                    document.getElementById(tz + 'March').value = currentTime;
+                    document.getElementById(tz + 'Oct').value = currentTime;
+                }
+            });
+        }
+        
+        // Create a DateTime object for DST mismatch calculations
+        function createDateTimeForDSTMismatch(sourceDateTime, sourceTimezoneName, targetDate) {
+            // Get the time portion from the source
+            const timeStr = sourceDateTime.toLocaleTimeString('en-US', { 
+                timeZone: sourceTimezoneName, 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            // Create a new date for the specific DST mismatch date
+            const dateStr = targetDate.getFullYear() + '-' + 
+                          String(targetDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(targetDate.getDate()).padStart(2, '0');
+            return new Date(dateStr + 'T' + timeStr + ':00');
+        }
+        
+        // Helper function to get proper timezone name
+        function getTimezoneName(tz) {
+            const timezoneMap = {
+                'usEast': 'America/New_York',
+                'usWest': 'America/Los_Angeles',
+                'utc': 'UTC',
+                'centralEurope': 'Europe/Paris',
+                'easternEurope': 'Europe/Athens',
+                'india': 'Asia/Kolkata'
+            };
+            return timezoneMap[tz] || timezones[tz]?.iana || 'UTC';
+        }
+
+        // Set current time in all fields using proper timezone detection
+        function setCurrentTime() {
+            const now = new Date();
+            // Apply the time offset for all calculations
+            const offsetTime = new Date(now.getTime() + timeOffset * 60 * 60 * 1000);
+            
+            Object.keys(timezones).forEach(tz => {
+                const timezoneName = getTimezoneName(tz);
+                
+                // Get offset time in this timezone
+                const currentTimeInTz = offsetTime.toLocaleTimeString('en-US', { 
+                    timeZone: timezoneName, 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                const [currentHours, currentMinutes] = currentTimeInTz.split(':').map(Number);
+                
+                // Determine if this timezone is currently in DST (using offset time)
+                const currentlyInDST = isDSTActive(offsetTime, getRegionForTimezone(tz));
+                
+                // Calculate winter and summer times
+                let winterHours = currentHours;
+                let summerHours = currentHours;
+                
+                // For timezones that use DST
+                if (tz !== 'utc' && tz !== 'india') {
+                    if (currentlyInDST) {
+                        // Currently in DST, so winter time is 1 hour earlier
+                        winterHours = currentHours - 1;
+                        if (winterHours < 0) winterHours += 24;
+                    } else {
+                        // Currently in standard time, so summer time is 1 hour later
+                        summerHours = currentHours + 1;
+                        if (summerHours >= 24) summerHours -= 24;
+                    }
+                }
+                
+                const winterTime = `${String(winterHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
+                const summerTime = `${String(summerHours).padStart(2, '0')}:${String(currentMinutes).padStart(2, '0')}`;
+                
+                // Calculate times for DST mismatch periods using actual dates
+                const currentYear = offsetTime.getFullYear();
+                const mismatchPeriods = getDSTMismatchPeriods(currentYear);
+                
+                // Create dates with offset time for mismatch periods
+                const mismatch1DateTime = new Date(offsetTime);
+                mismatch1DateTime.setFullYear(mismatchPeriods.mismatch1.representativeDate.getFullYear());
+                mismatch1DateTime.setMonth(mismatchPeriods.mismatch1.representativeDate.getMonth());
+                mismatch1DateTime.setDate(mismatchPeriods.mismatch1.representativeDate.getDate());
+                
+                const mismatch2DateTime = new Date(offsetTime);
+                mismatch2DateTime.setFullYear(mismatchPeriods.mismatch2.representativeDate.getFullYear());
+                mismatch2DateTime.setMonth(mismatchPeriods.mismatch2.representativeDate.getMonth());
+                mismatch2DateTime.setDate(mismatchPeriods.mismatch2.representativeDate.getDate());
+                
+                const mismatch1Time = mismatch1DateTime.toLocaleTimeString('en-US', { 
+                    timeZone: timezoneName, 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                const mismatch2Time = mismatch2DateTime.toLocaleTimeString('en-US', { 
+                    timeZone: timezoneName, 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                document.getElementById(tz).value = winterTime;
+                document.getElementById(tz + 'Alt').value = summerTime;
+                document.getElementById(tz + 'March').value = mismatch1Time;
+                document.getElementById(tz + 'Oct').value = mismatch2Time;
+            });
+        }
+        
+        // Helper function to get region for timezone
+        function getRegionForTimezone(tz) {
+            if (tz === 'usEast' || tz === 'usWest') return 'us';
+            if (tz === 'centralEurope' || tz === 'easternEurope') return 'europe';
+            if (tz === 'browserTz') {
+                // Determine region based on browser timezone
+                const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (browserTz.includes('America')) return 'us';
+                if (browserTz.includes('Europe')) return 'europe';
+            }
+            return null; // UTC, India, or unknown
+        }
+        
+        // Get time for a specific date in a timezone
+        function getTimeForSeasonalDate(year, month, day, hours, minutes, timezone) {
+            // Create a UTC date for the specified date and time
+            const utcDate = new Date(Date.UTC(year, month, day, hours, minutes));
+            
+            // Convert to the target timezone
+            const timeString = utcDate.toLocaleTimeString('en-US', { 
+                timeZone: timezone, 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            return timeString;
+        }
+
+
+
+        // Detect and add browser timezone if not already listed, or highlight existing one
+        function addBrowserTimezoneIfNeeded() {
+            const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const existingTimezoneMap = {
+                'America/New_York': 'usEast',
+                'America/Los_Angeles': 'usWest',
+                'UTC': 'utc',
+                'Europe/Paris': 'centralEurope',
+                'Europe/Athens': 'easternEurope',
+                'Asia/Kolkata': 'india'
+            };
+            
+            // Check if browser timezone matches an existing one
+            if (existingTimezoneMap[browserTimezone]) {
+                // Highlight the existing row
+                highlightBrowserTimezoneRow(existingTimezoneMap[browserTimezone]);
+            } else {
+                // Add new row for browser timezone
+                const now = new Date();
+                const timezoneName = getBrowserTimezoneDisplayName(browserTimezone);
+                const timezoneId = 'browserTz';
+                
+                // Add to timezones object
+                timezones[timezoneId] = { 
+                    standard: 0, // Will be calculated dynamically
+                    daylight: 0, 
+                    name: timezoneName,
+                    iana: browserTimezone 
+                };
+                
+                // Find insertion position based on UTC offset
+                const offset = getBrowserTimezoneOffset(browserTimezone);
+                const insertPosition = findInsertPosition(offset);
+                
+                // Create new row
+                const newRow = createTimezoneRow(timezoneId, timezoneName);
+                
+                // Insert row at correct position
+                const tableBody = document.querySelector('.clock-table tbody');
+                const rows = tableBody.querySelectorAll('tr');
+                
+                if (insertPosition >= rows.length) {
+                    tableBody.appendChild(newRow);
+                } else {
+                    tableBody.insertBefore(newRow, rows[insertPosition]);
+                }
+            }
+        }
+        
+        // Highlight an existing timezone row that matches the browser timezone
+        function highlightBrowserTimezoneRow(timezoneId) {
+            // Find the row containing the timezone input
+            const inputElement = document.getElementById(timezoneId);
+            if (inputElement) {
+                const row = inputElement.closest('tr');
+                if (row) {
+                    row.classList.add('browser-timezone-row');
+                }
+            }
+        }
+        
+        // Get display name for browser timezone
+        function getBrowserTimezoneDisplayName(timezone) {
+            // Try to get a nice display name
+            const parts = timezone.split('/');
+            if (parts.length >= 2) {
+                const city = parts[parts.length - 1].replace(/_/g, ' ');
+                const region = parts[0];
+                return `${city} (${region})`;
+            }
+            return timezone.replace(/_/g, ' ');
+        }
+        
+        // Get UTC offset for browser timezone
+        function getBrowserTimezoneOffset(timezone) {
+            const now = new Date();
+            const utc = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
+            const local = new Date(utc.toLocaleString('en-US', { timeZone: timezone }));
+            return (local.getTime() - utc.getTime()) / (1000 * 60 * 60);
+        }
+        
+        // Find where to insert timezone based on UTC offset
+        function findInsertPosition(offset) {
+            const offsets = [
+                { id: 'usWest', offset: -8 },    // PST
+                { id: 'usEast', offset: -5 },    // EST  
+                { id: 'utc', offset: 0 },        // UTC
+                { id: 'centralEurope', offset: 1 }, // CET
+                { id: 'easternEurope', offset: 2 }, // EET
+                { id: 'india', offset: 5.5 }     // IST
+            ];
+            
+            for (let i = 0; i < offsets.length; i++) {
+                if (offset < offsets[i].offset) {
+                    return i;
+                }
+            }
+            return offsets.length; // Insert at end
+        }
+        
+        // Create a new timezone row
+        function createTimezoneRow(timezoneId, timezoneName) {
+            const row = document.createElement('tr');
+            
+            // Add highlighting for browser timezone
+            if (timezoneId === 'browserTz') {
+                row.classList.add('browser-timezone-row');
+            }
+            
+            row.innerHTML = `
+                <td class="timezone-label">${timezoneName}</td>
+                <td><input type="time" class="time-input" id="${timezoneId}" onchange="convertTime('${timezoneId}')"></td>
+                <td><input type="time" class="time-input" id="${timezoneId}Alt" readonly></td>
+                <td><input type="time" class="time-input" id="${timezoneId}March" readonly></td>
+                <td><input type="time" class="time-input" id="${timezoneId}Oct" readonly></td>
+            `;
+            return row;
+        }
+
+
+        // Update column headers with calculated DST mismatch dates
+        function updateColumnHeaders() {
+            const currentYear = new Date().getFullYear();
+            const mismatchPeriods = getDSTMismatchPeriods(currentYear);
+            
+            document.getElementById('mismatch1Header').textContent = formatDateForHeader(mismatchPeriods.mismatch1.representativeDate);
+            document.getElementById('mismatch2Header').textContent = formatDateForHeader(mismatchPeriods.mismatch2.representativeDate);
+        }
+        
+        // Check if current date is in a DST mismatch period
+        function getCurrentMismatchPeriod() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const mismatchPeriods = getDSTMismatchPeriods(currentYear);
+            
+            // Check if we're in mismatch period 1
+            if (now >= mismatchPeriods.mismatch1.start && now < mismatchPeriods.mismatch1.end) {
+                return 'mismatch1';
+            }
+            
+            // Check if we're in mismatch period 2
+            if (now >= mismatchPeriods.mismatch2.start && now < mismatchPeriods.mismatch2.end) {
+                return 'mismatch2';
+            }
+            
+            return null; // Not in a mismatch period
+        }
+        
+        // Highlight the appropriate column based on current DST status
+        function highlightCurrentMismatchColumn() {
+            const currentMismatch = getCurrentMismatchPeriod();
+            
+            if (currentMismatch === 'mismatch1') {
+                // Highlight the first mismatch column (4th column - index 3)
+                highlightTableColumn(3);
+            } else if (currentMismatch === 'mismatch2') {
+                // Highlight the second mismatch column (5th column - index 4)
+                highlightTableColumn(4);
+            }
+        }
+        
+        // Highlight a specific table column
+        function highlightTableColumn(columnIndex) {
+            const table = document.querySelector('.clock-table');
+            const rows = table.querySelectorAll('tr');
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('th, td');
+                if (cells[columnIndex]) {
+                    cells[columnIndex].classList.add('highlighted-column');
+                }
+            });
+        }
+        
+        // Determine if both US and Europe are currently in DST
+        function isBothUSAndEuropeInDST() {
+            const now = new Date();
+            const usInDST = isDSTActive(now, 'us');
+            const europeInDST = isDSTActive(now, 'europe');
+            return usInDST && europeInDST;
+        }
+        
+        // Highlight the current DST time column
+        function highlightCurrentTimeColumn() {
+            const table = document.querySelector('.clock-table');
+            const rows = table.querySelectorAll('tr');
+            const bothInDST = isBothUSAndEuropeInDST();
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('th, td');
+                if (bothInDST) {
+                    // Highlight "Time (Summer)" column (index 2) when both US and Europe are in DST
+                    if (cells[2]) {
+                        cells[2].classList.add('current-time-column');
+                    }
+                } else {
+                    // Highlight "Time (Winter)" column (index 1) when DST is not active
+                    if (cells[1]) {
+                        cells[1].classList.add('current-time-column');
+                    }
+                }
+            });
+        }
+        
+        // Update DST info section with calculated periods
+        function updateDSTInfo() {
+            const currentYear = new Date().getFullYear();
+            const mismatchPeriods = getDSTMismatchPeriods(currentYear);
+            const currentMismatch = getCurrentMismatchPeriod();
+            
+            let statusNote = '';
+            if (currentMismatch === 'mismatch1') {
+                statusNote = `<p><strong>🚨 Current Status:</strong> We are currently in the first DST mismatch period. The "${formatDateForHeader(mismatchPeriods.mismatch1.representativeDate)}" column is highlighted as it represents the current time situation.</p>`;
+            } else if (currentMismatch === 'mismatch2') {
+                statusNote = `<p><strong>🚨 Current Status:</strong> We are currently in the second DST mismatch period. The "${formatDateForHeader(mismatchPeriods.mismatch2.representativeDate)}" column is highlighted as it represents the current time situation.</p>`;
+            } else {
+                statusNote = '<p><strong>✅ Current Status:</strong> US and European DST schedules are currently aligned.</p>';
+            }
+            
+            const dstInfo = document.querySelector('.dst-info');
+            dstInfo.innerHTML = `
+                <h3>📅 Daylight Saving Time Mismatches for ${currentYear}</h3>
+                <p><strong>Note:</strong> The "${formatDateForHeader(mismatchPeriods.mismatch1.representativeDate)}" and "${formatDateForHeader(mismatchPeriods.mismatch2.representativeDate)}" columns show what times would look like during the DST mismatch periods when US and European daylight saving schedules don't align.</p>
+                
+                ${statusNote}
+                
+                <div class="dst-period">
+                    <strong>${mismatchPeriods.mismatch1.description} (represented by ${formatDateForHeader(mismatchPeriods.mismatch1.representativeDate)} column):</strong><br>
+                    US: Daylight Time | Europe: Standard Time<br>
+                    <em>US starts DST earlier - 1 hour difference from normal offset.</em>
+                </div>
+                
+                <div class="dst-period">
+                    <strong>${mismatchPeriods.mismatch2.description} (represented by ${formatDateForHeader(mismatchPeriods.mismatch2.representativeDate)} column):</strong><br>
+                    US: Daylight Time | Europe: Standard Time<br>
+                    <em>Europe ends DST earlier - 1 hour difference from normal offset.</em>
+                </div>
+            `;
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentTime();
+            updateColumnHeaders();
+            updateDSTInfo();
+            highlightCurrentMismatchColumn();
+            highlightCurrentTimeColumn();
+            addBrowserTimezoneIfNeeded();
+            updateOffsetDisplay();
+            setCurrentTime();
+            
+            // Update current time and all timezone values every second
+            setInterval(function() {
+                updateCurrentTime();
+                setCurrentTime();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 
