@@ -57,7 +57,7 @@
             border-radius: 4px;
         }
         .converter-label {
-            width: 180px;
+            width: 160px;
             font-weight: bold;
             font-size: 14px;
             color: #333;
@@ -101,6 +101,17 @@
         }
         .output-column {
             width: 100%;
+        }
+        
+        @media (max-width: 700px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .converter-row {
+                margin-bottom: 0;
+                padding: 5px;
+            }
         }
     </style>
 </head>

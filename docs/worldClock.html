@@ -102,7 +102,7 @@
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            width: 100px;
+            width: 81px;
             font-family: monospace;
             font-size: 14px;
             vertical-align: middle;
@@ -209,6 +209,40 @@
             border-color: #2196f3;
             background-color: #f8fcff;
             font-weight: bold;
+        }
+        
+        @media (max-width: 700px) {
+            /* Hide all columns except the first one (timezone labels) by default */
+            .clock-table th:nth-child(n+2),
+            .clock-table td:nth-child(n+2) {
+                display: none;
+            }
+            
+            /* Show highlighted columns on mobile */
+            .clock-table th.highlighted-column,
+            .clock-table td.highlighted-column,
+            .clock-table th.current-time-column,
+            .clock-table td.current-time-column {
+                display: table-cell;
+            }
+            
+            /* Adjust table layout for mobile */
+            .clock-table {
+                table-layout: auto;
+            }
+            
+            /* Make remaining columns wider on mobile */
+            .clock-table th:first-child,
+            .clock-table td:first-child {
+                width: 60%;
+            }
+            
+            .clock-table th.highlighted-column,
+            .clock-table td.highlighted-column,
+            .clock-table th.current-time-column,
+            .clock-table td.current-time-column {
+                width: 40%;
+            }
         }
     </style>
 </head>
@@ -445,7 +479,9 @@
         
         // Format date for column header
         function formatDateForHeader(date) {
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${month}-${day}`;
         }
 
         // Get current offset for a timezone

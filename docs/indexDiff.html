@@ -125,6 +125,16 @@
             margin-top: 10px;
             text-align: center;
         }
+        
+        @media (max-width: 700px) {
+            .json-panels {
+                flex-direction: column;
+            }
+            
+            .json-textarea {
+                height: 100px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -140,12 +150,12 @@
         
         <div class="json-panels">
             <div class="json-panel">
-                <h2>Left JSON</h2>
+                <h2>Before</h2>
                 <textarea id="leftJson" class="json-textarea" placeholder="Enter JSON here..."></textarea>
             </div>
             
             <div class="json-panel">
-                <h2>Right JSON</h2>
+                <h2>After</h2>
                 <textarea id="rightJson" class="json-textarea" placeholder="Enter JSON here..."></textarea>
             </div>
         </div>

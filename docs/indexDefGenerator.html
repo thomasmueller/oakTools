@@ -132,6 +132,17 @@
         .detailed-panels.show {
             display: block;
         }
+        
+        @media (max-width: 700px) {
+            .panels {
+                flex-direction: column;
+            }
+            
+            .sql-textarea,
+            .ast-output {
+                height: 200px;
+            }
+        }
     </style>
 </head>
 <body>
