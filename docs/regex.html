@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regular Expression</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        .find-replace-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .find-replace-controls {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .find-replace-controls > div {
+            flex: 1;
+        }
+        .regex-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .column {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .right-column {
+            background-color: #f8f9fa;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        @media (max-width: 700px) {
+            .find-replace-controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .regex-fields {
+                gap: 10px;
+            }
+            .container {
+                flex-direction: column;
+            }
+            textarea {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>Regular Expression</h1>
+    </div>
+    
+    <div class="find-replace-panel">
+        <h2>Find & Replace</h2>
+        <div class="find-replace-controls">
+            <div class="regex-fields">
+                <div>
+                    <label for="findRegex">Find Regular Expression</label>
+                    <input type="text" id="findRegex" placeholder="Enter regular expression pattern...">
+                </div>
+                <div>
+                    <label for="findRegexV2"><a href="https://github.com/thomasmueller/bau-lang/blob/main/RegexV2.md" target="_blank" style="color: #333; text-decoration: none;">Find Regular Expression V2</a></label>
+                    <input type="text" id="findRegexV2" placeholder="Enter RegexV2 pattern...">
+                </div>
+            </div>
+            <div>
+                <label for="replaceText">Replace</label>
+                <input type="text" id="replaceText" placeholder="Enter replacement text...">
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="column">
+            <h2>Input</h2>
+            <textarea id="inputText" placeholder="Enter your text here..."></textarea>
+            <div id="errorMessage" class="error"></div>
+        </div>
+        
+        <div class="column right-column">
+            <h2>Output</h2>
+            <textarea id="outputText" placeholder="Output will appear here..." readonly></textarea>
+            <div id="successMessage" class="success"></div>
+        </div>
+    </div>
+
+    <script>
+        function performRegexReplace() {
+            const findRegex = document.getElementById('findRegex').value;
+            const replaceText = document.getElementById('replaceText').value;
+            const inputText = document.getElementById('inputText').value;
+            const outputTextArea = document.getElementById('outputText');
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            // Clear previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            try {
+                if (!findRegex) {
+                    throw new Error('Please enter a regular expression pattern');
+                }
+                
+                if (!inputText) {
+                    throw new Error('Please enter input text');
+                }
+                
+                // Create regex object with global flag for replace all
+                const regex = new RegExp(findRegex, 'g');
+                const result = inputText.replace(regex, replaceText);
+                
+                outputTextArea.value = result;
+                successDiv.textContent = 'Regular expression applied successfully';
+                successDiv.style.display = 'block';
+                
+            } catch (error) {
+                errorDiv.textContent = 'Error: ' + error.message;
+                errorDiv.style.display = 'block';
+                outputTextArea.value = '';
+            }
+        }
+        
+        // Convert between regular regex and RegexV2
+        // Converted from Java implementation: https://raw.githubusercontent.com/thomasmueller/bau-lang/refs/heads/main/src/test/java/org/bau/stdlib/string/regex/v2/Regex2.java
+        
+        const REGEX2_PREFIX = "(?2)";
+        
+        function regexV2ToRegex(regex2) {
+            if (!regex2) return '';
+            
+            let buff = [];
+            for (let i = 0; i < regex2.length; i++) {
+                let c = regex2.charAt(i);
+                if (c === '\'') {
+                    while (i < regex2.length) {
+                        c = regex2.charAt(++i);
+                        if (c === '\'') {
+                            if (i >= regex2.length - 1) {
+                                break;
+                            }
+                            c = regex2.charAt(++i);
+                            if (c === '\'') {
+                                buff.push(c);
+                            } else {
+                                i--;
+                                break;
+                            }
+                        } else {
+                            if ("^$.()+|*?/\\".indexOf(c) >= 0) {
+                                buff.push('\\');
+                            }
+                            buff.push(c);
+                        }
+                    }
+                } else if (c === ' ') {
+                    // ignore
+                } else if (c === 'x') {
+                    buff.push('\\');
+                    buff.push(regex2.substring(i, i + 3));
+                    i += 2;
+                } else if (c === 'u') {
+                    buff.push('\\');
+                    buff.push(regex2.substring(i, i + 5));
+                    i += 4;
+                } else if (c >= 'a' && c <= 'z') {
+                    buff.push('\\');
+                    buff.push(c);
+                } else if (c >= 'A' && c <= 'Z') {
+                    buff.push('\\');
+                    buff.push(c);
+                } else if (c === '{') {
+                    while (true) {
+                        buff.push(c);
+                        c = regex2.charAt(++i);
+                        if (c === '}') {
+                            buff.push(c);
+                            break;
+                        }
+                    }
+                } else {
+                    buff.push(c);
+                }
+            }
+            return buff.join('');
+        }
+        
+        function regexToRegexV2(regex) {
+            if (!regex) return '';
+            
+            let buff = [];
+            for (let i = 0; i < regex.length; i++) {
+                let c = regex.charAt(i);
+                if ("^$.()+|*?".indexOf(c) >= 0) {
+                    buff.push(c);
+                } else if (c === '{') {
+                    buff.push(c);
+                    while (true) {
+                        c = regex.charAt(++i);
+                        buff.push(c);
+                        if (c === '}') {
+                            break;
+                        }
+                    }
+                } else if (c === '[') {
+                    buff.push(c);
+                    c = regex.charAt(++i);
+                    if (c === '^') {
+                        buff.push(c);
+                        c = regex.charAt(++i);
+                    }
+                    while (true) {
+                        if (c === ']') {
+                            break;
+                        } else if (c === '\\') {
+                            i = appendEscaped(regex, i, buff);
+                        } else if (c === '-') {
+                            let last = buff.length > 0 ? buff[buff.length - 1] : '';
+                            if (last === '\'' || last === '[' || last === '^') {
+                                appendLiteral(buff, c);
+                            } else {
+                                buff.push(c);
+                            }
+                        } else {
+                            appendLiteral(buff, c);
+                        }
+                        c = regex.charAt(++i);
+                    }
+                    buff.push(']');
+                } else if (c === '\\') {
+                    i = appendEscaped(regex, i, buff);
+                } else {
+                    appendLiteral(buff, c);
+                }
+            }
+            return buff.join('');
+        }
+        
+        function appendLiteral(buff, c) {
+            if (buff.length > 0 && buff[buff.length - 1] === '\'') {
+                buff[buff.length - 1] = c;
+                if (c === '\'') {
+                    buff.push('\'');
+                }
+                buff.push('\'');
+            } else {
+                if (buff.length > 0) {
+                    buff.push(' ');
+                }
+                buff.push('\'');
+                buff.push(c);
+                if (c === '\'') {
+                    buff.push('\'');
+                }
+                buff.push('\'');
+            }
+        }
+        
+        function appendEscaped(regex, i, buff) {
+            if (buff.length > 0 && buff[buff.length - 1] === '\'') {
+                buff.push(' ');
+            }
+            let c = regex.charAt(++i);
+            if (c === 'x') {
+                buff.push(regex.substring(i, i + 3));
+                i += 2;
+            } else if (c === 'u') {
+                buff.push(regex.substring(i, i + 5));
+                i += 4;
+            } else if (c >= 'a' && c <= 'z') {
+                buff.push(c);
+            } else if (c >= 'A' && c <= 'Z') {
+                buff.push(c);
+            } else {
+                appendLiteral(buff, c);
+            }
+            return i;
+        }
+        
+        // Auto-sync between regex and regexV2 fields
+        let isConverting = false; // Flag to prevent conversion loops
+        
+        function syncRegexToV2() {
+            if (isConverting) return; // Prevent recursive calls
+            isConverting = true;
+            
+            const findRegex = document.getElementById('findRegex').value;
+            const v2Pattern = regexToRegexV2(findRegex);
+            document.getElementById('findRegexV2').value = v2Pattern;
+            autoApply();
+            
+            isConverting = false;
+        }
+        
+        function syncV2ToRegex() {
+            if (isConverting) return; // Prevent recursive calls
+            isConverting = true;
+            
+            const findRegexV2 = document.getElementById('findRegexV2').value;
+            try {
+                const pattern = regexV2ToRegex(findRegexV2);
+                document.getElementById('findRegex').value = pattern;
+                autoApply();
+            } catch (error) {
+                console.log(error);
+                // ignore
+            }
+            isConverting = false;
+        }
+        
+        // Auto-apply when input changes (optional feature)
+        function autoApply() {
+            const findRegex = document.getElementById('findRegex').value;
+            const replaceText = document.getElementById('replaceText').value;
+            const inputText = document.getElementById('inputText').value;
+            
+            if (findRegex && inputText) {
+                performRegexReplace();
+            }
+        }
+        
+        // Add event listeners for auto-apply and sync on input
+        document.getElementById('findRegex').addEventListener('input', function() {
+            syncRegexToV2();
+        });
+        document.getElementById('findRegexV2').addEventListener('input', function() {
+            syncV2ToRegex();
+        });
+        document.getElementById('replaceText').addEventListener('input', autoApply);
+        document.getElementById('inputText').addEventListener('input', autoApply);
+    </script>
+</body>
+</html> 

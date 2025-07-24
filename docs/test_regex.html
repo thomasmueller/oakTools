@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head><title>RegexV2 Test</title></head>
+<body>
+<script>
+function regexV2ToRegex(regex2) {
+    if (!regex2) return '';
+    
+    let buff = [];
+    for (let i = 0; i < regex2.length; i++) {
+        let c = regex2.charAt(i);
+        if (c === '\\') {
+            while (true) {
+                if (i >= regex2.length - 1) {
+                    break;
+                }
+                c = regex2.charAt(++i);
+                if (c === '\\') {
+                    buff.push(c);
+                } else {
+                    i--;
+                    break;
+                }
+            }
+        } else if (c === 'x') {
+            buff.push('\\');
+            buff.push(regex2.substring(i, i + 3));
+            i += 2;
+        } else if (c === 'u') {
+            buff.push('\\');
+            buff.push(regex2.substring(i, i + 5));
+            i += 4;
+        } else if (c >= 'a' && c <= 'z') {
+            buff.push('\\');
+            buff.push(c);
+        } else if (c >= 'A' && c <= 'Z') {
+            buff.push('\\');
+            buff.push(c);
+        } else if (c === '{') {
+            while (true) {
+                buff.push(c);
+                c = regex2.charAt(++i);
+                if (c === '}') {
+                    buff.push(c);
+                    break;
+                }
+            }
+        } else {
+            if ("^$.()+|*?/\\".indexOf(c) >= 0) {
+                buff.push('\\');
+            }
+            buff.push(c);
+        }
+    }
+    return buff.join('');
+}
+
+// Test cases
+console.log("Test 1 - Simple letter:", regexV2ToRegex("a")); // Should be \a
+console.log("Test 2 - Special char:", regexV2ToRegex(".")); // Should be \.
+console.log("Test 3 - Mixed:", regexV2ToRegex("abc.")); // Should be \a\b\c\.
+</script>
+</body>
+</html>

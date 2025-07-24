@@ -116,7 +116,6 @@
     <div class="container">
         <div class="column">
             <h2>XPath</h2>
-            <button onclick="convertXPath()">Convert to SQL-2</button>
             <textarea id="xpathInput" placeholder="Enter your XPath query here...">/jcr:root/content//element(*, nt:base)[fn:path() >= $lastValue] order by fn:path()</textarea>
             <div id="xpathError" class="error"></div>
             <div id="xpathSuccess" class="success"></div>
@@ -125,7 +124,6 @@
         
         <div class="column right-column">
             <h2>SQL-2</h2>
-            <div style="height: 46px; margin-bottom: 10px;"></div>
             <textarea id="sql2Output" placeholder="SQL-2 query will appear here..." readonly></textarea>
             <div class="info">JCR-SQL2 query format</div>
         </div>
