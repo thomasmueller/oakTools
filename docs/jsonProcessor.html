@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process JSON</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        .query-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .query-controls {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .column {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .right-column {
+            background-color: #f8f9fa;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        @media (max-width: 700px) {
+            .container {
+                flex-direction: column;
+            }
+            textarea {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>Process JSON</h1>
+    </div>
+    
+    <div class="query-panel">
+        <h2>Query</h2>
+        <div class="query-controls">
+            <div style="flex: 1;">
+                <label for="queryInput"><a href="https://jmespath.org/" target="_blank" style="color: #333; text-decoration: none;">JMESPath Expression</a></label>
+                <input type="text" id="queryInput" placeholder="Enter JMESPath query (e.g., foo.bar, items[0].name, people[?age > `30`])">
+                <select id="exampleQueries" style="margin-top: 10px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 14px; box-sizing: border-box;">
+                    <option value="">Select a common expression...</option>
+                    <option value="people[0].name">people[0].name - Get first person's name</option>
+                    <option value="people[*].name">people[*].name - Get all names</option>
+                    <option value="people[?age > `30`]">people[?age > `30`] - Filter by age > 30</option>
+                    <option value="people[?age < `30`].name">people[?age < `30`].name - Names of people under 30</option>
+                    <option value="length(people)">length(people) - Count items in array</option>
+                    <option value="people | sort_by(@, &age)">people | sort_by(@, &age) - Sort by age</option>
+                    <option value="people[0:2]">people[0:2] - Get first 2 items</option>
+                    <option value="company.name">company.name - Get nested property</option>
+                    <option value="@">@ - Return entire object</option>
+                    <option value="keys(@)">keys(@) - Get all keys</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="column">
+            <h2>Input JSON</h2>
+            <textarea id="inputJSON" placeholder="Enter your JSON data here...">{
+  "people": [
+    {"name": "John", "age": 30, "city": "New York"},
+    {"name": "Jane", "age": 25, "city": "San Francisco"},
+    {"name": "Bob", "age": 35, "city": "Chicago"}
+  ],
+  "company": {
+    "name": "Tech Corp",
+    "founded": 2010
+  }
+}</textarea>
+            <div id="errorMessage" class="error"></div>
+        </div>
+        
+        <div class="column right-column">
+            <h2>Output</h2>
+            <textarea id="outputJSON" placeholder="Query results will appear here..." readonly></textarea>
+            <div id="successMessage" class="success"></div>
+        </div>
+    </div>
+
+    <!-- Include JMESPath library from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/jmespath@0.16.0/jmespath.min.js"></script>
+    
+    <script>
+        function processJSON() {
+            const query = document.getElementById('queryInput').value;
+            const inputText = document.getElementById('inputJSON').value;
+            const outputTextArea = document.getElementById('outputJSON');
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            // Clear previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            try {
+                if (!query.trim()) {
+                    throw new Error('Please enter a JMESPath query');
+                }
+                
+                if (!inputText.trim()) {
+                    throw new Error('Please enter JSON data');
+                }
+                
+                // Parse the input JSON
+                let jsonData;
+                try {
+                    jsonData = JSON.parse(inputText);
+                } catch (parseError) {
+                    throw new Error('Invalid JSON: ' + parseError.message);
+                }
+                
+                // Execute the JMESPath query
+                const result = jmespath.search(jsonData, query);
+                
+                // Format and display the result
+                outputTextArea.value = JSON.stringify(result, null, 2);
+                successDiv.textContent = 'Query executed successfully';
+                successDiv.style.display = 'block';
+                
+            } catch (error) {
+                errorDiv.textContent = 'Error: ' + error.message;
+                errorDiv.style.display = 'block';
+                outputTextArea.value = '';
+            }
+        }
+        
+        // Auto-run when query or input changes
+        document.getElementById('queryInput').addEventListener('input', function() {
+            processJSON();
+        });
+        
+        document.getElementById('inputJSON').addEventListener('input', function() {
+            processJSON();
+        });
+        
+        // Handle example query selection
+        document.getElementById('exampleQueries').addEventListener('change', function() {
+            const selectedQuery = this.value;
+            if (selectedQuery) {
+                document.getElementById('queryInput').value = selectedQuery;
+                processJSON();
+                // Reset dropdown to placeholder
+                this.value = '';
+            }
+        });
+        
+        // Load example query and run it on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            // Set an example query
+            document.getElementById('queryInput').value = 'people[0].name';
+            // Auto-run the example
+            processJSON();
+        });
+    </script>
+</body>
+</html> 
