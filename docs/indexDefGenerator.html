@@ -153,9 +153,9 @@
     
     <div class="container">
         <div class="button-container">
-            <button class="parse-button" onclick="parseSQL2()">Generate Index</button>
+            <button class="parse-button" id="generateButton">Generate Index</button>
             <div class="checkbox-container">
-                <input type="checkbox" id="detailsCheckbox" class="details-checkbox" onchange="toggleDetailedPanels()">
+                <input type="checkbox" id="detailsCheckbox" class="details-checkbox">
                 <label for="detailsCheckbox" class="checkbox-label">Show Details (AST & Filter)</label>
             </div>
             <div style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
@@ -200,102 +200,9 @@ ORDER BY [jcr:created] DESC
         <div id="successMessage" class="success" style="display: none;"></div>
     </div>
 
+    <script src="js/json-formatter.js"></script>
     <script src="js/sql2-parser.js"></script>
     <script src="js/xpath-converter.js"></script>
-    <script>
-        function parseSQL2() {
-            const sqlInput = document.getElementById('sqlInput');
-            const astOutput = document.getElementById('astOutput');
-            const filterOutput = document.getElementById('filterOutput');
-            const indexOutput = document.getElementById('indexOutput');
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
-            
-            // Clear previous messages
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-            
-            try {
-                let sql = sqlInput.value.trim();
-                
-                if (sql === '') {
-                    astOutput.textContent = 'Enter SQL-2 or XPath query to see AST.';
-                    filterOutput.textContent = 'Filter representation will appear here.';
-                    indexOutput.textContent = 'Lucene index definition will appear here.';
-                    return;
-                }
-                
-                // Check if the query is XPath (starts with /jcr:root/ after ignoring spaces and opening parentheses)
-                const trimmedQuery = sql.replace(/^[\s(]+/, ''); // Remove leading spaces and opening parentheses
-                const isXPath = trimmedQuery.startsWith('/jcr:root/');
-                
-                if (isXPath) {
-                    try {
-                        // Convert XPath to SQL-2 first
-                        sql = convertXPathToSQL2(sql);
-                    } catch (xpathError) {
-                        throw new Error('XPath conversion failed: ' + xpathError.message);
-                    }
-                }
-                
-                // Tokenize
-                const lexer = new SQL2Lexer(sql);
-                
-                // Parse
-                const parser = new SQL2Parser(lexer.tokens);
-                const ast = parser.parseQuery();
-                
-                // Format and display AST
-                astOutput.textContent = formatAST(ast);
-                
-                // Convert AST to Filter and display
-                const filter = convertASTToFilter(ast);
-                filterOutput.textContent = formatFilter(filter);
-                
-                // Convert Filter to Lucene Index Definition and display
-                const indexDef = convertFilterToLuceneIndex(filter);
-                indexOutput.textContent = formatLuceneIndex(indexDef);
-                
-                let successText = 'Query processed and Lucene index definition generated successfully!';
-                if (isXPath) {
-                    successText = 'XPath query converted to SQL-2 and Lucene index definition generated successfully!';
-                }
-                successMessage.textContent = successText;
-                successMessage.style.display = 'block';
-                
-            } catch (error) {
-                astOutput.textContent = 'Error occurred during parsing.';
-                filterOutput.textContent = 'Error occurred during filter conversion.';
-                indexOutput.textContent = 'Error occurred during index definition generation.';
-                
-                let errorText = 'Query Error: ' + error.message;
-                errorMessage.textContent = errorText;
-                errorMessage.style.display = 'block';
-            }
-        }
-
-        function toggleDetailedPanels() {
-            const detailedPanels = document.getElementById('detailedPanels');
-            const checkbox = document.getElementById('detailsCheckbox');
-            
-            if (checkbox.checked) {
-                detailedPanels.classList.add('show');
-            } else {
-                detailedPanels.classList.remove('show');
-            }
-        }
-
-        // Parse on page load with default query
-        document.addEventListener('DOMContentLoaded', function() {
-            parseSQL2();
-        });
-
-        // Allow Ctrl+Enter to trigger parsing
-        document.getElementById('sqlInput').addEventListener('keydown', function(event) {
-            if (event.ctrlKey && event.key === 'Enter') {
-                parseSQL2();
-            }
-        });
-    </script>
+    <script src="js/indexDefGenerator.js"></script>
 </body>
 </html> 

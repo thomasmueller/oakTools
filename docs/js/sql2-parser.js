@@ -275,24 +275,47 @@ class SQL2Parser {
     }
 
     parseFromClause() {
-        return this.parseTableReference();
+        return this.parseSelector();
     }
 
-    parseTableReference() {
+    parseSelector() {
+        // Parse the main selector (table/node type)
+        let selectorNode;
+        
         if (this.match('BRACKETED_NAME')) {
             const nodeName = this.advance().value;
-            return {
+            selectorNode = {
                 type: 'NodeType',
                 value: nodeName
             };
         } else if (this.match('IDENTIFIER')) {
             const tableName = this.advance().value;
-            return {
+            selectorNode = {
                 type: 'Table',
                 name: tableName
             };
+        } else {
+            throw new Error('Expected table reference or node type');
         }
-        throw new Error('Expected table reference');
+
+        // Check for AS alias
+        if (this.match('AS')) {
+            this.advance(); // consume 'AS'
+            
+            if (this.match('IDENTIFIER')) {
+                const alias = this.advance().value;
+                selectorNode.alias = alias;
+            } else {
+                throw new Error('Expected alias identifier after AS');
+            }
+        }
+
+        return selectorNode;
+    }
+
+    // Legacy method for backward compatibility
+    parseTableReference() {
+        return this.parseSelector();
     }
 
     parseExpression() {
@@ -480,6 +503,20 @@ class SQL2Parser {
                             name: identifier,
                             arguments: args
                         };
+                    } else if (this.match('DOT')) {
+                        // Handle alias.property syntax (e.g., a.[jcr:content/metadata/status])
+                        this.advance(); // consume DOT
+                        
+                        if (this.match('BRACKETED_NAME')) {
+                            const property = this.advance().value;
+                            return {
+                                type: 'Property',
+                                name: property,
+                                selector: identifier  // Include the alias/selector reference
+                            };
+                        } else {
+                            throw new Error(`Expected property name after ${identifier}.`);
+                        }
                     } else {
                         return {
                             type: 'Identifier',
@@ -602,30 +639,49 @@ function extractConstraints(node, filter) {
 
                 switch (node.type) {
                 case 'BinaryOperation':
-                    if (node.operator === 'AND') {
+                    if (node.operator === 'AND' || node.operator === 'and') {
                         extractConstraints(node.left, filter);
                         extractConstraints(node.right, filter);
-                    } else if (node.operator === 'OR') {
+                    } else if (node.operator === 'OR' || node.operator === 'or') {
                         // OR constraints are more complex in Oak, simplified here
                         extractConstraints(node.left, filter);
                         extractConstraints(node.right, filter);
                     } else {
                         // Comparison operations
-                        const leftProp = extractPropertyName(node.left);
                         const rightValue = extractLiteralValue(node.right);
                         
-                        if (leftProp && rightValue !== undefined) {
-                            if (leftProp === 'jcr:path' && node.operator === 'LIKE') {
-                                extractPathConstraint(rightValue, filter);
-                            } else {
+                        if (rightValue !== undefined) {
+                            // Check if left side is a function
+                            if (node.left.type === 'Function') {
+                                // Handle function-based comparisons like LOWER([prop]) = 'value'
+                                const functionCall = formatFunctionCall(node.left);
                                 const constraint = {
-                                    propertyName: leftProp,
+                                    propertyName: functionCall,
                                     operator: node.operator,
                                     value: rightValue,
-                                    propertyType: typeof rightValue
+                                    propertyType: typeof rightValue,
+                                    isFunction: true
                                 };
-                                filter.propertyRestrictions.push(constraint);
-                                filter.properties.add(leftProp);
+                                                                 filter.propertyRestrictions.push(constraint);
+                                 // Note: Don't add function calls to properties set
+                                 // The inner property will be handled separately if needed
+                            } else {
+                                // Handle regular property comparisons
+                                const leftProp = extractPropertyName(node.left);
+                                if (leftProp) {
+                                    if (leftProp === 'jcr:path' && node.operator === 'LIKE') {
+                                        extractPathConstraint(rightValue, filter);
+                                    } else {
+                                        const constraint = {
+                                            propertyName: leftProp,
+                                            operator: node.operator,
+                                            value: rightValue,
+                                            propertyType: typeof rightValue
+                                        };
+                                        filter.propertyRestrictions.push(constraint);
+                                        filter.properties.add(leftProp);
+                                    }
+                                }
                             }
                         }
                     }
@@ -707,6 +763,23 @@ function extractPathConstraint(pathPattern, filter) {
         });
     }
 }
+
+        function formatFunctionCall(node) {
+            if (!node || node.type !== 'Function') return null;
+            
+            const args = node.arguments.map(arg => {
+                if (arg.type === 'Property') {
+                    return `[${arg.name}]`;
+                } else if (arg.type === 'Literal') {
+                    return JSON.stringify(arg.value);
+                } else {
+                    // Recursively handle nested functions or other expressions
+                    return formatFunctionCall(arg) || arg.name || JSON.stringify(arg);
+                }
+            }).join(', ');
+            
+            return `${node.name}(${args})`;
+        }
 
         function extractPropertyName(node) {
             if (!node) return null;
@@ -796,10 +869,14 @@ function convertFilterToLuceneIndex(filter) {
 
     const properties = indexRoot.indexRules[nodeType].properties;
 
-    // Add property definitions based on filter restrictions and referenced properties
-    const allProperties = new Set([...filter.properties]);
+    // Add property definitions based on filter restrictions only
+    const allProperties = new Set();
+    
+    // Properties from WHERE clause restrictions (excluding functions)
     filter.propertyRestrictions.forEach(restriction => {
-        allProperties.add(restriction.propertyName);
+        if (!restriction.isFunction) {
+            allProperties.add(restriction.propertyName);
+        }
     });
 
     // Sort properties are always needed as ordered
@@ -807,23 +884,50 @@ function convertFilterToLuceneIndex(filter) {
         allProperties.add(sort.property);
     });
 
+    // Generate property keys with proper naming rules and duplicate handling
+    const usedKeys = new Set();
+    
+    // Handle regular properties first
     allProperties.forEach(prop => {
-        const propKey = prop.replace(/[:\-\.]/g, '');
+        const propKey = generatePropertyKey(prop, usedKeys);
         const propDef = createPropertyDefinition(prop, filter);
         if (propDef) {
             properties[propKey] = propDef;
         }
     });
+    
+    // Handle function-based restrictions separately
+    filter.propertyRestrictions.forEach(restriction => {
+        if (restriction.isFunction) {
+            // Extract the inner property for a more readable key
+            const match = restriction.propertyName.match(/([A-Z]+)\(\[([^\]]+)\]\)/);
+            let functionKey;
+            if (match) {
+                const funcName = match[1].toLowerCase(); // LOWER -> lower
+                const innerProp = match[2]; // jcr:content/metadata/status
+                const innerKey = generatePropertyKey(innerProp, new Set()); // Generate clean key from inner property
+                functionKey = `${funcName}_${innerKey}`;
+                // Ensure uniqueness
+                let counter = 1;
+                while (usedKeys.has(functionKey)) {
+                    functionKey = `${funcName}_${innerKey}_${counter}`;
+                    counter++;
+                }
+                usedKeys.add(functionKey);
+            } else {
+                // Fallback to original method if pattern doesn't match
+                functionKey = generatePropertyKey(restriction.propertyName, usedKeys);
+            }
+            
+            const propDef = createFunctionPropertyDefinition(restriction, filter);
+            if (propDef) {
+                properties[functionKey] = propDef;
+            }
+        }
+    });
 
-    // Add node name property for search optimization
-    if (!allProperties.has(':nodeName')) {
-        properties.nodeName = {
-            "jcr:primaryType": "nt:unstructured",
-            "name": ":nodeName",
-            "propertyIndex": true,
-            "useInSuggest": true
-        };
-    }
+    // Note: nodeName property should only be added when explicitly needed by the query
+    // (removed automatic nodeName addition as it's not always required)
 
     return indexDef;
 }
@@ -841,6 +945,62 @@ function generateIndexName(filter) {
     }
     
     return name + 'Custom';
+}
+
+function generatePropertyKey(propertyName, usedKeys) {
+    // Rule 1: If the name contains "/", take everything after the last "/"
+    let key = propertyName;
+    const lastSlashIndex = key.lastIndexOf('/');
+    if (lastSlashIndex !== -1) {
+        key = key.substring(lastSlashIndex + 1);
+    }
+    
+    // Rule 2: If the remaining name contains ":", take everything after the last ":"
+    const lastColonIndex = key.lastIndexOf(':');
+    if (lastColonIndex !== -1) {
+        key = key.substring(lastColonIndex + 1);
+    }
+    
+    // Rule 3: Handle duplicates by appending "_1", "_2", etc.
+    let finalKey = key;
+    let counter = 1;
+    while (usedKeys.has(finalKey)) {
+        finalKey = `${key}_${counter}`;
+        counter++;
+    }
+    
+    usedKeys.add(finalKey);
+    return finalKey;
+}
+
+function createFunctionPropertyDefinition(restriction, filter) {
+    const propDef = {
+        "jcr:primaryType": "nt:unstructured",
+        "function": restriction.propertyName,
+        "propertyIndex": true
+    };
+
+    // Determine property type based on restriction value
+    if (restriction.propertyType === 'string' && typeof restriction.value === 'string') {
+        // Date properties
+        if (restriction.value.match(/^\d{4}-\d{2}-\d{2}/)) {
+            propDef.type = "Date";
+        }
+    } else if (restriction.propertyType === 'number') {
+        if (Number.isInteger(restriction.value)) {
+            propDef.type = "Long";
+        } else {
+            propDef.type = "Double";
+        }
+    }
+
+    // Add null checks for IS NULL / IS NOT NULL operations
+    if (restriction.operator === 'IS NULL' || restriction.operator === 'IS NOT NULL') {
+        propDef.nullCheckEnabled = true;
+        propDef.notNullCheckEnabled = true;
+    }
+
+    return propDef;
 }
 
 function createPropertyDefinition(propertyName, filter) {
@@ -973,126 +1133,92 @@ function formatAST(node, indent = 0) {
 }
 
 function formatFilter(filter) {
-    const lines = [];
+    // Convert the filter to a clean JSON representation
+    const cleanFilter = {
+        type: filter.type,
+        selector: filter.selector,
+        nodeType: filter.nodeType
+    };
     
-    lines.push('Oak Filter Analysis:');
-    lines.push('==================');
-    lines.push('');
-    
-    if (filter.selector) {
-        lines.push(`Selector: ${filter.selector}`);
-    }
-    
-    if (filter.nodeType) {
-        lines.push(`Node Type: ${filter.nodeType}`);
-    }
-    
-    lines.push('');
-    
+    // Add path restrictions if present
     if (filter.pathRestrictions.length > 0) {
-        lines.push('Path Restrictions:');
-        filter.pathRestrictions.forEach(restriction => {
-            switch (restriction.type) {
-                case 'PATH_PREFIX':
-                    lines.push(`  - Path starts with: ${restriction.path}`);
-                    break;
-                case 'PATH_GLOB':
-                    lines.push(`  - Path matches: ${restriction.pattern}`);
-                    break;
-                case 'PATH_EXACT':
-                    lines.push(`  - Exact path: ${restriction.path}`);
-                    break;
-            }
-        });
-        lines.push('');
+        cleanFilter.pathRestrictions = filter.pathRestrictions;
     }
     
+    // Add property restrictions if present
     if (filter.propertyRestrictions.length > 0) {
-        lines.push('Property Restrictions:');
-        filter.propertyRestrictions.forEach(restriction => {
-            const valueStr = restriction.value !== null ? JSON.stringify(restriction.value) : 'null';
-            lines.push(`  - ${restriction.propertyName} ${restriction.operator} ${valueStr}`);
-        });
-        lines.push('');
+        cleanFilter.propertyRestrictions = filter.propertyRestrictions;
     }
     
+    // Add sort order if present
     if (filter.sortOrder.length > 0) {
-        lines.push('Sort Order:');
-        filter.sortOrder.forEach(sort => {
-            lines.push(`  - ${sort.property} ${sort.direction}`);
-        });
-        lines.push('');
+        cleanFilter.sortOrder = filter.sortOrder;
     }
     
-    if (filter.properties.size > 0) {
-        lines.push('Referenced Properties:');
-        Array.from(filter.properties).forEach(prop => {
-            lines.push(`  - ${prop}`);
-        });
-        lines.push('');
-    }
-    
-    // Oak-specific optimizations
-    lines.push('Query Optimizations:');
+    // Add path constraints if present
     if (filter.pathPrefix) {
-        lines.push(`  - Can use path index (prefix: ${filter.pathPrefix})`);
+        cleanFilter.pathPrefix = filter.pathPrefix;
     }
-    if (filter.nodeType) {
-        lines.push(`  - Can use node type index (${filter.nodeType})`);
-    }
-    if (filter.propertyRestrictions.some(r => r.propertyName === 'jcr:uuid')) {
-        lines.push('  - Can use UUID index');
-    }
-    if (filter.propertyRestrictions.some(r => r.propertyName.startsWith('jcr:'))) {
-        lines.push('  - Uses JCR system properties');
+    if (filter.pathGlob) {
+        cleanFilter.pathGlob = filter.pathGlob;
     }
     
-    return lines.join('\n');
-}
-
-function formatJSONCustom(obj, indentLevel) {
-    const indent = '    '.repeat(indentLevel);
-    const nextIndent = '    '.repeat(indentLevel + 1);
+    // Add fulltext search flag
+    cleanFilter.isFulltextSearchable = filter.isFulltextSearchable;
     
-    if (obj === null) {
-        return 'null';
-    }
+    // Use the existing json-formatter for consistent formatting
+    let formatter;
     
-    if (typeof obj === 'string') {
-        return JSON.stringify(obj);
-    }
-    
-    if (typeof obj === 'number' || typeof obj === 'boolean') {
-        return String(obj);
-    }
-    
-    if (Array.isArray(obj)) {
-        // Format arrays on a single line
-        const items = obj.map(item => formatJSONCustom(item, indentLevel));
-        return '[ ' + items.join(', ') + ' ]';
-    }
-    
-    if (typeof obj === 'object') {
-        const keys = Object.keys(obj);
-        
-        if (keys.length === 0) {
-            return '{}';
+    // Check if we're in Node.js environment (for tests)
+    if (typeof require !== 'undefined') {
+        try {
+            const jsonFormatter = require('./json-formatter.js');
+            formatter = jsonFormatter;
+        } catch (e) {
+            // Fallback to simple formatting if json-formatter is not available
+            return JSON.stringify(cleanFilter, null, 4);
         }
-        
-        const lines = keys.map(key => {
-            const value = formatJSONCustom(obj[key], indentLevel + 1);
-            return nextIndent + JSON.stringify(key) + ': ' + value;
-        });
-        
-        return '{\n' + lines.join(',\n') + '\n' + indent + '}';
+    } else {
+        // Browser environment - functions should be globally available
+        if (typeof sortObjectKeys !== 'undefined' && typeof formatJSONCustom !== 'undefined') {
+            formatter = { sortObjectKeys, formatJSONCustom };
+        } else {
+            // Fallback if json-formatter functions are not loaded
+            return JSON.stringify(cleanFilter, null, 4);
+        }
     }
     
-    return JSON.stringify(obj);
+    // Sort object keys for consistent output and format
+    const sortedFilter = formatter.sortObjectKeys(cleanFilter);
+    return formatter.formatJSONCustom(sortedFilter, 0);
 }
 
 function formatLuceneIndex(indexDef) {
-    // Format as JSON with custom formatting for readability
-    return formatJSONCustom(indexDef, 0);
+    // Use the existing json-formatter for consistent formatting
+    let formatter;
+    
+    // Check if we're in Node.js environment (for tests)
+    if (typeof require !== 'undefined') {
+        try {
+            const jsonFormatter = require('./json-formatter.js');
+            formatter = jsonFormatter;
+        } catch (e) {
+            // Fallback to simple formatting if json-formatter is not available
+            return JSON.stringify(indexDef, null, 4);
+        }
+    } else {
+        // Browser environment - functions should be globally available
+        if (typeof sortObjectKeys !== 'undefined' && typeof formatJSONCustom !== 'undefined') {
+            formatter = { sortObjectKeys, formatJSONCustom };
+        } else {
+            // Fallback if json-formatter functions are not loaded
+            return JSON.stringify(indexDef, null, 4);
+        }
+    }
+    
+    // Sort object keys for consistent output and format
+    const sortedIndexDef = formatter.sortObjectKeys(indexDef);
+    return formatter.formatJSONCustom(sortedIndexDef, 0);
 }
 
 // Export for Node.js testing environment

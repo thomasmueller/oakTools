@@ -1,0 +1,136 @@
+/**
+ * Index Definition Generator JavaScript
+ * 
+ * This module contains the main logic for parsing SQL-2 and XPath queries
+ * and generating Lucene index definitions.
+ */
+
+/**
+ * Main function to parse SQL-2 or XPath queries and generate index definitions
+ */
+function parseSQL2() {
+    const sqlInput = document.getElementById('sqlInput');
+    const astOutput = document.getElementById('astOutput');
+    const filterOutput = document.getElementById('filterOutput');
+    const indexOutput = document.getElementById('indexOutput');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    
+    // Clear previous messages
+    errorMessage.style.display = 'none';
+    successMessage.style.display = 'none';
+    
+    try {
+        let sql = sqlInput.value.trim();
+        
+        if (sql === '') {
+            astOutput.textContent = 'Enter SQL-2 or XPath query to see AST.';
+            filterOutput.textContent = 'Filter representation will appear here.';
+            indexOutput.textContent = 'Lucene index definition will appear here.';
+            return;
+        }
+        
+        // Check if the query is XPath (starts with /jcr:root/ after ignoring spaces and opening parentheses)
+        const trimmedQuery = sql.replace(/^[\s(]+/, ''); // Remove leading spaces and opening parentheses
+        const isXPath = trimmedQuery.startsWith('/jcr:root/');
+        
+        if (isXPath) {
+            try {
+                // Convert XPath to SQL-2 first
+                sql = convertXPathToSQL2(sql);
+            } catch (xpathError) {
+                throw new Error('XPath conversion failed: ' + xpathError.message);
+            }
+        }
+        
+        // Tokenize
+        const lexer = new SQL2Lexer(sql);
+        
+        // Parse
+        const parser = new SQL2Parser(lexer.tokens);
+        const ast = parser.parseQuery();
+        
+        // Format and display AST
+        astOutput.textContent = formatAST(ast);
+        
+        // Convert AST to Filter and display
+        const filter = convertASTToFilter(ast);
+        filterOutput.textContent = formatFilter(filter);
+        
+        // Convert Filter to Lucene Index Definition and display
+        const indexDef = convertFilterToLuceneIndex(filter);
+        indexOutput.textContent = formatLuceneIndex(indexDef);
+        
+        let successText = 'Query processed and Lucene index definition generated successfully!';
+        if (isXPath) {
+            successText = 'XPath query converted to SQL-2 and Lucene index definition generated successfully!';
+        }
+        successMessage.textContent = successText;
+        successMessage.style.display = 'block';
+        
+    } catch (error) {
+        astOutput.textContent = 'Error occurred during parsing.';
+        filterOutput.textContent = 'Error occurred during filter conversion.';
+        indexOutput.textContent = 'Error occurred during index definition generation.';
+        
+        let errorText = 'Query Error: ' + error.message;
+        errorMessage.textContent = errorText;
+        errorMessage.style.display = 'block';
+    }
+}
+
+/**
+ * Toggle the visibility of detailed panels (AST and Filter)
+ */
+function toggleDetailedPanels() {
+    const detailedPanels = document.getElementById('detailedPanels');
+    const checkbox = document.getElementById('detailsCheckbox');
+    
+    if (checkbox.checked) {
+        detailedPanels.classList.add('show');
+    } else {
+        detailedPanels.classList.remove('show');
+    }
+}
+
+/**
+ * Initialize event listeners when the DOM is loaded
+ */
+function initializeIndexDefGenerator() {
+    // Parse on page load with default query
+    parseSQL2();
+    
+    // Add event listener for Generate Index button
+    const generateButton = document.getElementById('generateButton');
+    if (generateButton) {
+        generateButton.addEventListener('click', parseSQL2);
+    }
+    
+    // Add event listener for details checkbox
+    const detailsCheckbox = document.getElementById('detailsCheckbox');
+    if (detailsCheckbox) {
+        detailsCheckbox.addEventListener('change', toggleDetailedPanels);
+    }
+    
+    // Allow Ctrl+Enter to trigger parsing
+    const sqlInput = document.getElementById('sqlInput');
+    if (sqlInput) {
+        sqlInput.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
+                parseSQL2();
+            }
+        });
+    }
+}
+
+// Initialize when DOM content is loaded
+document.addEventListener('DOMContentLoaded', initializeIndexDefGenerator);
+
+// Export functions for testing (if running in Node.js environment)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        parseSQL2,
+        toggleDetailedPanels,
+        initializeIndexDefGenerator
+    };
+} 

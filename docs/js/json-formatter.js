@@ -179,30 +179,46 @@ function minifyJSON() {
     }
 }
 
-// Initialize event listeners when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Allow Enter key to trigger conversion
-    document.getElementById('rawInput').addEventListener('keydown', function(event) {
-        if (event.ctrlKey && event.key === 'Enter') {
-            formatJSON();
-        }
-    });
+// Initialize event listeners when DOM is loaded (browser only)
+if (typeof document !== 'undefined') {
+    var rawInput = document.getElementById('rawInput');
+    var formattedOutput = document.getElementById('formattedOutput');
+    var errorMessage = document.getElementById('errorMessage');
+    var successMessage = document.getElementById('successMessage');
+    if (rawInput != null && formattedOutput != null && errorMessage != null && successMessage != null) {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Allow Enter key to trigger conversion
+            rawInput.addEventListener('keydown', function(event) {
+                if (event.ctrlKey && event.key === 'Enter') {
+                    formatJSON();
+                }
+            });
 
-    // Clear formatted output when raw input is cleared
-    document.getElementById('rawInput').addEventListener('input', function() {
-        if (this.value.trim() === '') {
-            document.getElementById('formattedOutput').value = '';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-        }
-    });
+            // Clear formatted output when raw input is cleared
+            rawInput.addEventListener('input', function() {
+                if (this.value.trim() === '') {
+                    formattedOutput.value = '';
+                    errorMessage.style.display = 'none';
+                    successMessage.style.display = 'none';
+                }
+            });
 
-    // Clear raw input when formatted output is cleared
-    document.getElementById('formattedOutput').addEventListener('input', function() {
-        if (this.value.trim() === '') {
-            document.getElementById('rawInput').value = '';
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-        }
-    });
-}); 
+            // Clear raw input when formatted output is cleared
+            formattedOutput.addEventListener('input', function() {
+                if (this.value.trim() === '') {
+                    rawInput.value = '';
+                    errorMessage.style.display = 'none';
+                    successMessage.style.display = 'none';
+                }
+            });
+        });
+    }
+}
+
+// Export functions for use in other modules (Node.js compatibility)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        sortObjectKeys,
+        formatJSONCustom
+    };
+}

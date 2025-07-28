@@ -1,0 +1,12 @@
+{
+  "name": "oak-tools",
+  "version": "1.0.0",
+  "description": "Oak Tools - Index Definition Generator and utilities",
+  "scripts": {
+    "test": "node js/indexDefGenerator.test.js",
+    "test:indexdef": "node js/indexDefGenerator.test.js"
+  },
+  "keywords": ["oak", "lucene", "index", "sql2", "xpath", "jcr"],
+  "author": "Oak Tools",
+  "license": "MIT"
+} 
