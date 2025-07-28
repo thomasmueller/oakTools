@@ -840,9 +840,7 @@ function convertFilterToLuceneIndex(filter) {
             "type": "lucene",
             "async": ["async", "nrt"],
             "compatVersion": 2,
-            "evaluatePathRestrictions": true,
-            "reindex": false,
-            "reindexCount": 0
+            "evaluatePathRestrictions": true
         }
     };
 
@@ -995,8 +993,9 @@ function createFunctionPropertyDefinition(restriction, filter) {
     }
 
     // Add null checks for IS NULL / IS NOT NULL operations
-    if (restriction.operator === 'IS NULL' || restriction.operator === 'IS NOT NULL') {
+    if (restriction.operator === 'IS NULL') {
         propDef.nullCheckEnabled = true;
+    } else if (restriction.operator === 'IS NOT NULL') {
         propDef.notNullCheckEnabled = true;
     }
 
@@ -1012,9 +1011,6 @@ function createPropertyDefinition(propertyName, filter) {
     // Set property name (handle special properties)
     if (propertyName === ':nodeName') {
         propDef.name = ":nodeName";
-        propDef.useInSuggest = true;
-        delete propDef.propertyIndex;
-        propDef.propertyIndex = true;
         return propDef;
     } else {
         propDef.name = `str:${propertyName}`;
@@ -1043,12 +1039,22 @@ function createPropertyDefinition(propertyName, filter) {
             }
         }
 
-        // Add null checks for IS NULL / IS NOT NULL operations
-        if (restriction.operator === 'IS NULL' || restriction.operator === 'IS NOT NULL') {
+        // Add null checks based on specific operations
+        if (restriction.operator === 'IS NULL') {
             propDef.nullCheckEnabled = true;
+        } else if (restriction.operator === 'IS NOT NULL') {
             propDef.notNullCheckEnabled = true;
         }
     }
+
+    // Check all restrictions for this property to determine null check capabilities
+    restrictions.forEach(restriction => {
+        if (restriction.operator === 'IS NULL') {
+            propDef.nullCheckEnabled = true;
+        } else if (restriction.operator === 'IS NOT NULL') {
+            propDef.notNullCheckEnabled = true;
+        }
+    });
 
     // If property is used in ORDER BY, make it ordered
     if (sortRestrictions.length > 0) {
@@ -1061,19 +1067,6 @@ function createPropertyDefinition(propertyName, filter) {
     } else if (propertyName === 'jcr:path') {
         // Path is typically not indexed as a property, handled via path restrictions
         return null;
-    } else if (propertyName.includes('title') || propertyName.includes('Title')) {
-        propDef.boost = 2.0;
-        propDef.useInSuggest = true;
-        propDef.useInSpellcheck = true;
-        propDef.nodeScopeIndex = true;
-    } else if (propertyName.includes('description') || propertyName.includes('Description')) {
-        propDef.useInSuggest = true;
-        propDef.useInSpellcheck = true;
-        propDef.nodeScopeIndex = true;
-    } else if (propertyName.includes('tag') || propertyName.includes('Tag')) {
-        propDef.useInSuggest = true;
-        propDef.useInSpellcheck = true;
-        propDef.nodeScopeIndex = true;
     }
 
     return propDef;

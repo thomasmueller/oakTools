@@ -368,9 +368,8 @@ runner.test('Lucene index generation - IndexRules properties', function() {
     // jcr:created should be ordered (used in ORDER BY)
     this.assertEqual(properties.jcrcreated.ordered, true);
     
-    // jcr:title should have boost and search features
-    this.assertEqual(properties.jcrtitle.boost, 2.0);
-    this.assertEqual(properties.jcrtitle.useInSuggest, true);
+    // jcr:title property should not have boost
+    this.assertEqual(properties.jcrtitle.hasOwnProperty('boost'), false, 'Title should not have boost property');
 });
 
 runner.test('Complex query test', function() {

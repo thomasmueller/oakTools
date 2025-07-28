@@ -339,8 +339,6 @@ ORDER BY a.[jcr:content/metadata/jcr:lastModified] DESC`;
             "async": ["async", "nrt"],
             "compatVersion": 2,
             "evaluatePathRestrictions": true,
-            "reindex": false,
-            "reindexCount": 0,
             "indexRules": {
                 "jcr:primaryType": "nt:unstructured",
                 "dam:Asset": {
@@ -510,6 +508,215 @@ WHERE LOWER([jcr:content/metadata/status]) = 'published'`;
         this.assertEqual(functionProp.hasOwnProperty('name'), false, 
             'Should not have name property when function is used');
     }
+});
+
+runner.test('Should handle IS NULL and IS NOT NULL conditions correctly', function() {
+    // Test IS NULL
+    const testSQL1 = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/status] IS NULL`;
+    
+    console.log('Testing IS NULL condition...');
+    
+    const lexer1 = new SQL2Lexer(testSQL1);
+    const parser1 = new SQL2Parser(lexer1.tokens);
+    const ast1 = parser1.parseQuery();
+    const filter1 = convertASTToFilter(ast1);
+    
+    this.assertEqual(filter1.propertyRestrictions.length, 1, 'Should have one property restriction for IS NULL');
+    this.assertEqual(filter1.propertyRestrictions[0].operator, 'IS NULL', 'Should have IS NULL operator');
+    
+    const indexDef1 = convertFilterToLuceneIndex(filter1);
+    const properties1 = indexDef1["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const statusProp1 = properties1.status;
+    
+    this.assertEqual(statusProp1.nullCheckEnabled, true, 'Should have nullCheckEnabled for IS NULL');
+    this.assertEqual(statusProp1.hasOwnProperty('notNullCheckEnabled'), false, 'Should NOT have notNullCheckEnabled for IS NULL');
+    
+    // Test IS NOT NULL
+    const testSQL2 = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/status] IS NOT NULL`;
+    
+    console.log('Testing IS NOT NULL condition...');
+    
+    const lexer2 = new SQL2Lexer(testSQL2);
+    const parser2 = new SQL2Parser(lexer2.tokens);
+    const ast2 = parser2.parseQuery();
+    const filter2 = convertASTToFilter(ast2);
+    
+    this.assertEqual(filter2.propertyRestrictions.length, 1, 'Should have one property restriction for IS NOT NULL');
+    this.assertEqual(filter2.propertyRestrictions[0].operator, 'IS NOT NULL', 'Should have IS NOT NULL operator');
+    
+    const indexDef2 = convertFilterToLuceneIndex(filter2);
+    const properties2 = indexDef2["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const statusProp2 = properties2.status;
+    
+    this.assertEqual(statusProp2.notNullCheckEnabled, true, 'Should have notNullCheckEnabled for IS NOT NULL');
+    this.assertEqual(statusProp2.hasOwnProperty('nullCheckEnabled'), false, 'Should NOT have nullCheckEnabled for IS NOT NULL');
+    
+    // Test both conditions for same property
+    const testSQL3 = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/status] IS NULL OR [jcr:content/metadata/status] IS NOT NULL`;
+    
+    console.log('Testing both IS NULL and IS NOT NULL conditions...');
+    
+    const lexer3 = new SQL2Lexer(testSQL3);
+    const parser3 = new SQL2Parser(lexer3.tokens);
+    const ast3 = parser3.parseQuery();
+    const filter3 = convertASTToFilter(ast3);
+    
+    this.assertEqual(filter3.propertyRestrictions.length, 2, 'Should have two property restrictions');
+    
+    const indexDef3 = convertFilterToLuceneIndex(filter3);
+    const properties3 = indexDef3["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const statusProp3 = properties3.status;
+    
+    this.assertEqual(statusProp3.nullCheckEnabled, true, 'Should have nullCheckEnabled when both conditions present');
+    this.assertEqual(statusProp3.notNullCheckEnabled, true, 'Should have notNullCheckEnabled when both conditions present');
+    
+    // Test regular equality condition (should not have null checks)
+    const testSQL4 = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/status] = 'published'`;
+    
+    console.log('Testing regular equality condition (no null checks)...');
+    
+    const lexer4 = new SQL2Lexer(testSQL4);
+    const parser4 = new SQL2Parser(lexer4.tokens);
+    const ast4 = parser4.parseQuery();
+    const filter4 = convertASTToFilter(ast4);
+    
+    const indexDef4 = convertFilterToLuceneIndex(filter4);
+    const properties4 = indexDef4["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const statusProp4 = properties4.status;
+    
+    this.assertEqual(statusProp4.hasOwnProperty('nullCheckEnabled'), false, 'Should NOT have nullCheckEnabled for equality');
+    this.assertEqual(statusProp4.hasOwnProperty('notNullCheckEnabled'), false, 'Should NOT have notNullCheckEnabled for equality');
+});
+
+runner.test('Should not include unwanted properties in index definition', function() {
+    // Test title property (should not have any special properties)
+    const testSQL1 = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/title] = 'test'`;
+    
+    console.log('Testing removal of unwanted properties...');
+    
+    const lexer1 = new SQL2Lexer(testSQL1);
+    const parser1 = new SQL2Parser(lexer1.tokens);
+    const ast1 = parser1.parseQuery();
+    const filter1 = convertASTToFilter(ast1);
+    const indexDef1 = convertFilterToLuceneIndex(filter1);
+    const properties1 = indexDef1["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const titleProp = properties1.title;
+    
+    console.log('Title property structure:', JSON.stringify(titleProp, null, 2));
+    
+    // Should NOT have boost property
+    this.assertEqual(titleProp.hasOwnProperty('boost'), false, 'Should NOT have boost property');
+    
+    // Should NOT have unwanted properties
+    this.assertEqual(titleProp.hasOwnProperty('useInSuggest'), false, 'Should NOT have useInSuggest');
+    this.assertEqual(titleProp.hasOwnProperty('useInSpellcheck'), false, 'Should NOT have useInSpellcheck');
+    this.assertEqual(titleProp.hasOwnProperty('nodeScopeIndex'), false, 'Should NOT have nodeScopeIndex');
+    
+    // Test description property (should not have any special properties)
+    const testSQL2 = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/description] = 'test'`;
+    
+    const lexer2 = new SQL2Lexer(testSQL2);
+    const parser2 = new SQL2Parser(lexer2.tokens);
+    const ast2 = parser2.parseQuery();
+    const filter2 = convertASTToFilter(ast2);
+    const indexDef2 = convertFilterToLuceneIndex(filter2);
+    const properties2 = indexDef2["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const descProp = properties2.description;
+    
+    console.log('Description property structure:', JSON.stringify(descProp, null, 2));
+    
+    // Should NOT have unwanted properties
+    this.assertEqual(descProp.hasOwnProperty('useInSuggest'), false, 'Description should NOT have useInSuggest');
+    this.assertEqual(descProp.hasOwnProperty('useInSpellcheck'), false, 'Description should NOT have useInSpellcheck');
+    this.assertEqual(descProp.hasOwnProperty('nodeScopeIndex'), false, 'Description should NOT have nodeScopeIndex');
+    
+    // Test tag property (should not have any special properties)
+    const testSQL3 = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/tag] = 'test'`;
+    
+    const lexer3 = new SQL2Lexer(testSQL3);
+    const parser3 = new SQL2Parser(lexer3.tokens);
+    const ast3 = parser3.parseQuery();
+    const filter3 = convertASTToFilter(ast3);
+    const indexDef3 = convertFilterToLuceneIndex(filter3);
+    const properties3 = indexDef3["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const tagProp = properties3.tag;
+    
+    console.log('Tag property structure:', JSON.stringify(tagProp, null, 2));
+    
+    // Should NOT have unwanted properties
+    this.assertEqual(tagProp.hasOwnProperty('useInSuggest'), false, 'Tag should NOT have useInSuggest');
+    this.assertEqual(tagProp.hasOwnProperty('useInSpellcheck'), false, 'Tag should NOT have useInSpellcheck');
+    this.assertEqual(tagProp.hasOwnProperty('nodeScopeIndex'), false, 'Tag should NOT have nodeScopeIndex');
+});
+
+runner.test('Should not include reindex properties in index definition', function() {
+    const testSQL = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/status] = 'published'`;
+    
+    console.log('Testing removal of reindex properties...');
+    
+    const lexer = new SQL2Lexer(testSQL);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    const filter = convertASTToFilter(ast);
+    const indexDef = convertFilterToLuceneIndex(filter);
+    
+    const indexRoot = indexDef["/oak:index/damAssetLuceneCustom"];
+    
+    console.log('Index definition top-level keys:', Object.keys(indexRoot));
+    
+    // Should NOT have reindex properties
+    this.assertEqual(indexRoot.hasOwnProperty('reindex'), false, 'Should NOT have reindex property');
+    this.assertEqual(indexRoot.hasOwnProperty('reindexCount'), false, 'Should NOT have reindexCount property');
+    
+    // Should still have essential properties
+    this.assertEqual(indexRoot.hasOwnProperty('jcr:primaryType'), true, 'Should have jcr:primaryType');
+    this.assertEqual(indexRoot.hasOwnProperty('type'), true, 'Should have type');
+    this.assertEqual(indexRoot.hasOwnProperty('async'), true, 'Should have async');
+    this.assertEqual(indexRoot.hasOwnProperty('compatVersion'), true, 'Should have compatVersion');
+    this.assertEqual(indexRoot.hasOwnProperty('evaluatePathRestrictions'), true, 'Should have evaluatePathRestrictions');
+    this.assertEqual(indexRoot.hasOwnProperty('indexRules'), true, 'Should have indexRules');
+    
+    // Verify essential property values
+    this.assertEqual(indexRoot['jcr:primaryType'], 'oak:QueryIndexDefinition', 'Should have correct primaryType');
+    this.assertEqual(indexRoot.type, 'lucene', 'Should have correct type');
+    this.assertEqual(indexRoot.compatVersion, 2, 'Should have correct compatVersion');
+    this.assertEqual(indexRoot.evaluatePathRestrictions, true, 'Should have evaluatePathRestrictions true');
+});
+
+runner.test('Should not include boost property in any index property', function() {
+    const testCases = [
+        { name: 'title', sql: `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/title] = 'test'` },
+        { name: 'description', sql: `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/description] = 'test'` },
+        { name: 'tag', sql: `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/tag] = 'test'` },
+        { name: 'status', sql: `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/status] = 'published'` }
+    ];
+    
+    console.log('Testing removal of boost property across all property types...');
+    
+    testCases.forEach(testCase => {
+        const lexer = new SQL2Lexer(testCase.sql);
+        const parser = new SQL2Parser(lexer.tokens);
+        const ast = parser.parseQuery();
+        const filter = convertASTToFilter(ast);
+        const indexDef = convertFilterToLuceneIndex(filter);
+        const properties = indexDef["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+        const prop = properties[testCase.name];
+        
+        console.log(`Checking ${testCase.name} property...`);
+        
+        // Should NOT have boost property
+        this.assertEqual(prop.hasOwnProperty('boost'), false, `${testCase.name} should NOT have boost property`);
+        
+        // Should have essential properties
+        this.assertEqual(prop.hasOwnProperty('jcr:primaryType'), true, `${testCase.name} should have jcr:primaryType`);
+        this.assertEqual(prop.hasOwnProperty('propertyIndex'), true, `${testCase.name} should have propertyIndex`);
+        this.assertEqual(prop.hasOwnProperty('name'), true, `${testCase.name} should have name`);
+        
+        // Verify values
+        this.assertEqual(prop['jcr:primaryType'], 'nt:unstructured', `${testCase.name} should have correct primaryType`);
+        this.assertEqual(prop.propertyIndex, true, `${testCase.name} should have propertyIndex true`);
+        this.assertEqual(prop.name.startsWith('str:'), true, `${testCase.name} should have str: prefix in name`);
+    });
 });
 
 // Run the tests
