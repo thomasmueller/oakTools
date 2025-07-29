@@ -886,6 +886,11 @@ function extractPathConstraint(pathPattern, filter) {
         function formatFunctionCall(node) {
             if (!node || node.type !== 'Function') return null;
             
+            // Special handling for path() function - always format as path() regardless of selector
+            if (node.name === 'PATH' || node.name === 'path') {
+                return 'path()';
+            }
+            
             const args = node.arguments.map(arg => {
                 if (arg.type === 'Property') {
                     return `[${arg.name}]`;
@@ -909,13 +914,20 @@ function extractPathConstraint(pathPattern, filter) {
                 case 'Identifier':
                     return node.name;
                 case 'Function':
+                    // For special functions like PATH(selector), NAME(), LOCALNAME(), SCORE()
+                    if (node.name === 'PATH' || node.name === 'path') {
+                        // If path has a selector argument, return the selector name
+                        if (node.arguments && node.arguments.length > 0 && node.arguments[0].type === 'Identifier') {
+                            return node.arguments[0].name;
+                        }
+                        return ':path';
+                    }
+                    if (node.name === 'NAME' || node.name === 'LOCALNAME' || node.name === 'SCORE') {
+                        return `:${node.name.toLowerCase()}`;
+                    }
                     // For functions like UPPER([jcr:title]), extract the property from first argument
                     if (node.arguments && node.arguments.length > 0) {
                         return extractPropertyName(node.arguments[0]);
-                    }
-                    // For functions like NAME(), LOCALNAME(), PATH(), SCORE() without arguments
-                    if (node.name === 'NAME' || node.name === 'LOCALNAME' || node.name === 'PATH' || node.name === 'SCORE') {
-                        return `:${node.name.toLowerCase()}`;
                     }
                     return null;
                 case 'Cast':
@@ -1023,24 +1035,37 @@ function convertFilterToLuceneIndex(filter) {
     // Handle function-based restrictions separately
     filter.propertyRestrictions.forEach(restriction => {
         if (restriction.isFunction) {
-            // Extract the inner property for a more readable key
-            const match = restriction.propertyName.match(/([A-Z]+)\(\[([^\]]+)\]\)/);
             let functionKey;
-            if (match) {
-                const funcName = match[1].toLowerCase(); // LOWER -> lower
-                const innerProp = match[2]; // jcr:content/metadata/status
-                const innerKey = generatePropertyKey(innerProp, new Set()); // Generate clean key from inner property
-                functionKey = `${funcName}_${innerKey}`;
+            
+            // Special handling for path() function
+            if (restriction.propertyName === 'path()') {
+                functionKey = 'path';
                 // Ensure uniqueness
                 let counter = 1;
                 while (usedKeys.has(functionKey)) {
-                    functionKey = `${funcName}_${innerKey}_${counter}`;
+                    functionKey = `path_${counter}`;
                     counter++;
                 }
                 usedKeys.add(functionKey);
             } else {
-                // Fallback to original method if pattern doesn't match
-                functionKey = generatePropertyKey(restriction.propertyName, usedKeys);
+                // Extract the inner property for a more readable key
+                const match = restriction.propertyName.match(/([A-Z]+)\(\[([^\]]+)\]\)/);
+                if (match) {
+                    const funcName = match[1].toLowerCase(); // LOWER -> lower
+                    const innerProp = match[2]; // jcr:content/metadata/status
+                    const innerKey = generatePropertyKey(innerProp, new Set()); // Generate clean key from inner property
+                    functionKey = `${funcName}_${innerKey}`;
+                    // Ensure uniqueness
+                    let counter = 1;
+                    while (usedKeys.has(functionKey)) {
+                        functionKey = `${funcName}_${innerKey}_${counter}`;
+                        counter++;
+                    }
+                    usedKeys.add(functionKey);
+                } else {
+                    // Fallback to original method if pattern doesn't match
+                    functionKey = generatePropertyKey(restriction.propertyName, usedKeys);
+                }
             }
             
             const propDef = createFunctionPropertyDefinition(restriction, filter);
