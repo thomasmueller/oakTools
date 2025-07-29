@@ -144,6 +144,15 @@
             margin-top: 10px;
             text-align: center;
         }
+        .warning {
+            color: #e68900;
+            margin-top: 10px;
+            text-align: center;
+            background-color: #fff8e1;
+            border: 1px solid #ffcc02;
+            border-radius: 4px;
+            padding: 10px;
+        }
         .detailed-panels {
             display: none;
         }
@@ -188,14 +197,15 @@
         <div class="panels">
             <div class="panel">
                 <h2>Query</h2>
-                <textarea id="sqlInput" class="sql-textarea" placeholder="Enter SQL-2 or XPath query here...">SELECT [jcr:title], [jcr:created] 
-FROM [nt:base] 
-WHERE [jcr:path] LIKE '/content/%' 
-  AND [jcr:created] > '2023-01-01'
-ORDER BY [jcr:created] DESC
+                <textarea id="sqlInput" class="sql-textarea" placeholder="Enter SQL-2 or XPath query here...">select    * 
+from     [dam:Asset] 
+where    isdescendentnode('/content/dam') 
+and      [jcr:created] > '2025-01-01'
+order by [jcr:created] asc
+option   (index tag [abc])
 
 -- Example XPath query:
--- /jcr:root/content//element(*, nt:base)[@jcr:title]</textarea>
+-- /jcr:root/content/dam//element(*, dam:Asset)[@jcr:title]</textarea>
             </div>
             
             <div class="panel">
@@ -219,6 +229,7 @@ ORDER BY [jcr:created] DESC
         </div>
         
         <div id="errorMessage" class="error" style="display: none;"></div>
+        <div id="warningMessage" class="warning" style="display: none;"></div>
         <div id="successMessage" class="success" style="display: none;"></div>
     </div>
 

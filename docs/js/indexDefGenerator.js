@@ -14,10 +14,12 @@ function parseSQL2() {
     const filterOutput = document.getElementById('filterOutput');
     const indexOutput = document.getElementById('indexOutput');
     const errorMessage = document.getElementById('errorMessage');
+    const warningMessage = document.getElementById('warningMessage');
     const successMessage = document.getElementById('successMessage');
     
     // Clear previous messages
     errorMessage.style.display = 'none';
+    warningMessage.style.display = 'none';
     successMessage.style.display = 'none';
     
     try {
@@ -60,6 +62,28 @@ function parseSQL2() {
         // Convert Filter to Lucene Index Definition and display
         const indexDef = convertFilterToLuceneIndex(filter);
         indexOutput.textContent = formatLuceneIndex(indexDef);
+        
+        // Check for path restrictions and show warning if not present
+        const hasPathRestriction = Object.values(indexDef).some(index => 
+            index.includedPaths && index.includedPaths.length > 0
+        );
+        
+        // Check for index tag and show warning if not present
+        const hasIndexTag = filter.indexTag && filter.indexTag.trim() !== '';
+        
+        // Combine warnings if multiple conditions are missing
+        let warnings = [];
+        if (!hasPathRestriction) {
+            warnings.push("Warning: the query doesn't have a path restriction. This is not recommended. Consider adding a path restriction such as '/content'.");
+        }
+        if (!hasIndexTag) {
+            warnings.push("Warning: the query doesn't use a tag. Consider adding a tag using 'option(index tag xyz)' where 'xyz' is the name of the component of the application.");
+        }
+        
+        if (warnings.length > 0) {
+            warningMessage.innerHTML = warnings.join('<br><br>');
+            warningMessage.style.display = 'block';
+        }
         
         let successText = 'Query processed and Lucene index definition generated successfully!';
         if (isXPath) {

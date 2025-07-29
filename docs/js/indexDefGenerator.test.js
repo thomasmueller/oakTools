@@ -334,7 +334,7 @@ ORDER BY a.[jcr:content/metadata/jcr:lastModified] DESC`;
 
     // Expected index definition (without nodeName property)
     const expectedIndexDef = {
-        "/oak:index/damAssetLuceneCustom": {
+        "/oak:index/damAssetLucene-12-custom-1": {
             "jcr:primaryType": "oak:QueryIndexDefinition",
             "type": "lucene",
             "async": ["async", "nrt"],
@@ -375,7 +375,7 @@ ORDER BY a.[jcr:content/metadata/jcr:lastModified] DESC`;
     this.assertEqual(actualIndexDef, expectedIndexDef, 'Generated index definition should match expected structure');
 
     // Assert - Verify specific properties exist
-    const properties = actualIndexDef["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties = actualIndexDef["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     
     this.assertEqual(properties["status"]["name"], "str:jcr:content/metadata/status", 
         'Status property should have correct name');
@@ -414,7 +414,7 @@ ORDER BY a.[jcr:content/metadata/jcr:lastModified] DESC`;
     const indexDef = convertFilterToLuceneIndex(filter);
 
     // Assert
-    const properties = indexDef["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties = indexDef["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const propKeys = Object.keys(properties).filter(key => key !== "jcr:primaryType");
 
     // Should generate: status, status_1, lastModified
@@ -458,7 +458,7 @@ runner.test('Should apply property naming rules correctly', function() {
         const filter = convertASTToFilter(ast);
         const indexDef = convertFilterToLuceneIndex(filter);
         
-        const properties = indexDef["/oak:index/ntbaseLuceneCustom"].indexRules["nt:base"].properties;
+        const properties = indexDef["/oak:index/ntbaseLucene-12-custom-1"].indexRules["nt:base"].properties;
         const propKeys = Object.keys(properties).filter(key => key !== "jcr:primaryType");
         
         this.assertEqual(propKeys.includes(testCase.expected), true, 
@@ -493,7 +493,7 @@ WHERE LOWER([jcr:content/metadata/status]) = 'published'`;
     
     // Test index definition generation
     const indexDef = convertFilterToLuceneIndex(filter);
-    const properties = indexDef["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties = indexDef["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     
     // Find the function property (should not have a simple property name key)
     const propertyKeys = Object.keys(properties).filter(key => key !== "jcr:primaryType");
@@ -526,7 +526,7 @@ runner.test('Should handle IS NULL and IS NOT NULL conditions correctly', functi
     this.assertEqual(filter1.propertyRestrictions[0].operator, 'IS NULL', 'Should have IS NULL operator');
     
     const indexDef1 = convertFilterToLuceneIndex(filter1);
-    const properties1 = indexDef1["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties1 = indexDef1["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const statusProp1 = properties1.status;
     
     this.assertEqual(statusProp1.nullCheckEnabled, true, 'Should have nullCheckEnabled for IS NULL');
@@ -546,7 +546,7 @@ runner.test('Should handle IS NULL and IS NOT NULL conditions correctly', functi
     this.assertEqual(filter2.propertyRestrictions[0].operator, 'IS NOT NULL', 'Should have IS NOT NULL operator');
     
     const indexDef2 = convertFilterToLuceneIndex(filter2);
-    const properties2 = indexDef2["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties2 = indexDef2["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const statusProp2 = properties2.status;
     
     this.assertEqual(statusProp2.notNullCheckEnabled, true, 'Should have notNullCheckEnabled for IS NOT NULL');
@@ -565,7 +565,7 @@ runner.test('Should handle IS NULL and IS NOT NULL conditions correctly', functi
     this.assertEqual(filter3.propertyRestrictions.length, 2, 'Should have two property restrictions');
     
     const indexDef3 = convertFilterToLuceneIndex(filter3);
-    const properties3 = indexDef3["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties3 = indexDef3["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const statusProp3 = properties3.status;
     
     this.assertEqual(statusProp3.nullCheckEnabled, true, 'Should have nullCheckEnabled when both conditions present');
@@ -582,7 +582,7 @@ runner.test('Should handle IS NULL and IS NOT NULL conditions correctly', functi
     const filter4 = convertASTToFilter(ast4);
     
     const indexDef4 = convertFilterToLuceneIndex(filter4);
-    const properties4 = indexDef4["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties4 = indexDef4["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const statusProp4 = properties4.status;
     
     this.assertEqual(statusProp4.hasOwnProperty('nullCheckEnabled'), false, 'Should NOT have nullCheckEnabled for equality');
@@ -600,7 +600,7 @@ runner.test('Should not include unwanted properties in index definition', functi
     const ast1 = parser1.parseQuery();
     const filter1 = convertASTToFilter(ast1);
     const indexDef1 = convertFilterToLuceneIndex(filter1);
-    const properties1 = indexDef1["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties1 = indexDef1["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const titleProp = properties1.title;
     
     console.log('Title property structure:', JSON.stringify(titleProp, null, 2));
@@ -621,7 +621,7 @@ runner.test('Should not include unwanted properties in index definition', functi
     const ast2 = parser2.parseQuery();
     const filter2 = convertASTToFilter(ast2);
     const indexDef2 = convertFilterToLuceneIndex(filter2);
-    const properties2 = indexDef2["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties2 = indexDef2["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const descProp = properties2.description;
     
     console.log('Description property structure:', JSON.stringify(descProp, null, 2));
@@ -639,7 +639,7 @@ runner.test('Should not include unwanted properties in index definition', functi
     const ast3 = parser3.parseQuery();
     const filter3 = convertASTToFilter(ast3);
     const indexDef3 = convertFilterToLuceneIndex(filter3);
-    const properties3 = indexDef3["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+    const properties3 = indexDef3["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
     const tagProp = properties3.tag;
     
     console.log('Tag property structure:', JSON.stringify(tagProp, null, 2));
@@ -661,7 +661,7 @@ runner.test('Should not include reindex properties in index definition', functio
     const filter = convertASTToFilter(ast);
     const indexDef = convertFilterToLuceneIndex(filter);
     
-    const indexRoot = indexDef["/oak:index/damAssetLuceneCustom"];
+    const indexRoot = indexDef["/oak:index/damAssetLucene-12-custom-1"];
     
     console.log('Index definition top-level keys:', Object.keys(indexRoot));
     
@@ -700,7 +700,7 @@ runner.test('Should not include boost property in any index property', function(
         const ast = parser.parseQuery();
         const filter = convertASTToFilter(ast);
         const indexDef = convertFilterToLuceneIndex(filter);
-        const properties = indexDef["/oak:index/damAssetLuceneCustom"].indexRules["dam:Asset"].properties;
+        const properties = indexDef["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
         const prop = properties[testCase.name];
         
         console.log(`Checking ${testCase.name} property...`);
@@ -745,7 +745,7 @@ runner.test('Should handle OPTION clause with index tag', function() {
     this.assertEqual(filter.indexTag, 'abc', 'Filter indexTag should be "abc"');
     
     const indexDef = convertFilterToLuceneIndex(filter);
-    const indexRoot = indexDef["/oak:index/damAssetLuceneCustom"];
+    const indexRoot = indexDef["/oak:index/damAssetLucene-12-custom-1"];
     
     console.log('Index definition tags:', indexRoot.tags);
     
@@ -754,6 +754,10 @@ runner.test('Should handle OPTION clause with index tag', function() {
     this.assertEqual(Array.isArray(indexRoot.tags), true, 'Tags should be an array');
     this.assertEqual(indexRoot.tags.length, 1, 'Tags array should have one element');
     this.assertEqual(indexRoot.tags[0], 'abc', 'Tags should contain "abc"');
+    
+    // Check index definition has selectionPolicy when tags are present
+    this.assertEqual(indexRoot.hasOwnProperty('selectionPolicy'), true, 'Index definition should have selectionPolicy when tags are present');
+    this.assertEqual(indexRoot.selectionPolicy, 'tag', 'SelectionPolicy should be "tag" when tags are present');
 });
 
 // Run the tests

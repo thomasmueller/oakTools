@@ -370,7 +370,8 @@ runner.test('Lucene index generation - Basic structure', function() {
     this.assertTrue(Array.isArray(index.async));
     this.assertContains(index.async, 'async');
     this.assertEqual(index.compatVersion, 2);
-    this.assertEqual(index.includedPaths, '/content');
+    this.assertEqual(index.includedPaths, ['/content']);
+    this.assertEqual(index.queryPaths, ['/content']);
 });
 
 runner.test('Lucene index generation - IndexRules properties', function() {
@@ -426,7 +427,8 @@ runner.test('Complex query test', function() {
     const index = indexDef[indexKey];
     
     this.assertEqual(index.type, 'lucene');
-    this.assertEqual(index.includedPaths, '/content');
+    this.assertEqual(index.includedPaths, ['/content']);
+    this.assertEqual(index.queryPaths, ['/content']);
     this.assertTrue('nt:base' in index.indexRules);
 });
 

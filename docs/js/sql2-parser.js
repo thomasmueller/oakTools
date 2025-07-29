@@ -90,6 +90,7 @@ class SQL2Lexer {
             'AS': 'AS',
             'CAST': 'CAST',
             'CONTAINS': 'CONTAINS',
+            'ISDESCENDENTNODE': 'ISDESCENDENTNODE',
             'OPTION': 'OPTION',
             'TAG': 'TAG',
             'INDEX': 'INDEX'
@@ -486,6 +487,28 @@ class SQL2Parser {
                         name: 'CONTAINS',
                         arguments: args
                     };
+                } else if (this.match('ISDESCENDENTNODE')) {
+                    this.advance();
+                    this.consume('LPAREN');
+                    const args = [];
+                    
+                    if (!this.match('RPAREN')) {
+                        do {
+                            args.push(this.parseExpression());
+                            if (this.match('COMMA')) {
+                                this.advance();
+                            } else {
+                                break;
+                            }
+                        } while (!this.match('RPAREN'));
+                    }
+                    
+                    this.consume('RPAREN');
+                    return {
+                        type: 'Function',
+                        name: 'ISDESCENDENTNODE',
+                        arguments: args
+                    };
                 } else if (this.match('IDENTIFIER')) {
                     const identifier = this.advance().value;
                     
@@ -643,8 +666,17 @@ function convertASTToFilter(ast) {
         if (ast.from) {
             if (ast.from.type === 'NodeType') {
                 filter.nodeType = ast.from.value;
+                // Use alias if present, otherwise use default
+                if (ast.from.alias) {
+                    filter.selector = ast.from.alias;
+                }
             } else if (ast.from.type === 'Table') {
-                filter.selector = ast.from.name;
+                // Use alias if present, otherwise use the table name
+                if (ast.from.alias) {
+                    filter.selector = ast.from.alias;
+                } else {
+                    filter.selector = ast.from.name;
+                }
             }
         }
 
@@ -772,13 +804,47 @@ function extractConstraints(node, filter) {
                     break;
                     
                 case 'Function':
-                    // Handle function constraints like CONTAINS
+                    // Handle function constraints like CONTAINS and ISDESCENDENTNODE
                     if (node.name === 'CONTAINS' && node.arguments.length >= 2) {
                         const containsProp = extractPropertyName(node.arguments[0]);
                         const searchValue = extractLiteralValue(node.arguments[1]);
                         if (containsProp && searchValue) {
                             filter.isFulltextSearchable = true;
                             filter.properties.add(containsProp);
+                        }
+                    } else if ((node.name === 'ISDESCENDENTNODE' || node.name === 'isdescendantnode') && node.arguments.length >= 1) {
+                        if (node.arguments.length === 1) {
+                            // Single parameter: isdescendentnode('/content')
+                            const pathValue = extractLiteralValue(node.arguments[0]);
+                            if (pathValue) {
+                                // Same effect as [jcr:path] LIKE '/content/%'
+                                filter.pathPrefix = pathValue;
+                                filter.pathRestrictions.push({
+                                    type: 'PATH_PREFIX',
+                                    path: pathValue
+                                });
+                            }
+                        } else if (node.arguments.length >= 2) {
+                            // Two parameters: isdescendentnode(selector, '/content')
+                            let selectorValue = null;
+                            if (node.arguments[0].type === 'Identifier') {
+                                selectorValue = node.arguments[0].name;
+                            } else {
+                                selectorValue = extractLiteralValue(node.arguments[0]) || extractPropertyName(node.arguments[0]);
+                            }
+                            const pathValue = extractLiteralValue(node.arguments[1]);
+                            
+                            if (selectorValue && pathValue) {
+                                // Only apply path restriction if selector matches current filter selector
+                                if (selectorValue === filter.selector) {
+                                    // Same effect as [jcr:path] LIKE '/content/%'
+                                    filter.pathPrefix = pathValue;
+                                    filter.pathRestrictions.push({
+                                        type: 'PATH_PREFIX',
+                                        path: pathValue
+                                    });
+                                }
+                            }
                         }
                     }
                     break;
@@ -902,11 +968,13 @@ function convertFilterToLuceneIndex(filter) {
     // Add tags if indexTag is specified
     if (filter.indexTag) {
         indexRoot.tags = [filter.indexTag];
+        indexRoot.selectionPolicy = "tag";
     }
 
     // Add included paths if path restrictions exist
     if (filter.pathPrefix) {
-        indexRoot.includedPaths = filter.pathPrefix;
+        indexRoot.includedPaths = [filter.pathPrefix];
+        indexRoot.queryPaths = [filter.pathPrefix];
     }
 
     // Create indexRules
@@ -995,12 +1063,7 @@ function generateIndexName(filter) {
         name = filter.nodeType.replace(/[:\-]/g, '') + 'Lucene';
     }
     
-    if (filter.pathPrefix) {
-        const pathPart = filter.pathPrefix.replace(/[\/\-\.]/g, '');
-        name += pathPart.charAt(0).toUpperCase() + pathPart.slice(1);
-    }
-    
-    return name + 'Custom';
+    return name + '-12-custom-1';
 }
 
 function generatePropertyKey(propertyName, usedKeys) {
