@@ -749,12 +749,82 @@
         function addBrowserTimezoneIfNeeded() {
             const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const existingTimezoneMap = {
+                // US East Coast (EST/EDT)
                 'America/New_York': 'usEast',
+                'America/Detroit': 'usEast',
+                'America/Toronto': 'usEast',
+                'America/Montreal': 'usEast',
+                'America/Havana': 'usEast',
+                
+                // US West Coast (PST/PDT)
                 'America/Los_Angeles': 'usWest',
+                'America/Vancouver': 'usWest',
+                'America/Seattle': 'usWest',
+                'America/Tijuana': 'usWest',
+                
+                // UTC
                 'UTC': 'utc',
+                'GMT': 'utc',
+                'Atlantic/Reykjavik': 'utc',
+                'Africa/Casablanca': 'utc',
+                
+                // Central Europe (CET/CEST)
                 'Europe/Paris': 'centralEurope',
+                'Europe/Berlin': 'centralEurope',
+                'Europe/Rome': 'centralEurope',
+                'Europe/Madrid': 'centralEurope',
+                'Europe/Amsterdam': 'centralEurope',
+                'Europe/Brussels': 'centralEurope',
+                'Europe/Vienna': 'centralEurope',
+                'Europe/Zurich': 'centralEurope',
+                'Europe/Prague': 'centralEurope',
+                'Europe/Warsaw': 'centralEurope',
+                'Europe/Budapest': 'centralEurope',
+                'Europe/Stockholm': 'centralEurope',
+                'Europe/Oslo': 'centralEurope',
+                'Europe/Copenhagen': 'centralEurope',
+                'Europe/Zagreb': 'centralEurope',
+                'Europe/Ljubljana': 'centralEurope',
+                'Europe/Belgrade': 'centralEurope',
+                'Europe/Sarajevo': 'centralEurope',
+                'Europe/Podgorica': 'centralEurope',
+                'Europe/Skopje': 'centralEurope',
+                'Europe/Luxembourg': 'centralEurope',
+                'Europe/Monaco': 'centralEurope',
+                'Europe/Vatican': 'centralEurope',
+                'Europe/San_Marino': 'centralEurope',
+                'Europe/Andorra': 'centralEurope',
+                'Europe/Malta': 'centralEurope',
+                'Africa/Tunis': 'centralEurope',
+                'Africa/Algiers': 'centralEurope',
+                
+                // Eastern Europe (EET/EEST)
                 'Europe/Athens': 'easternEurope',
-                'Asia/Kolkata': 'india'
+                'Europe/Bucharest': 'easternEurope',
+                'Europe/Sofia': 'easternEurope',
+                'Europe/Helsinki': 'easternEurope',
+                'Europe/Tallinn': 'easternEurope',
+                'Europe/Riga': 'easternEurope',
+                'Europe/Vilnius': 'easternEurope',
+                'Europe/Kiev': 'easternEurope',
+                'Europe/Chisinau': 'easternEurope',
+                'Europe/Tiraspol': 'easternEurope',
+                'Africa/Cairo': 'easternEurope',
+                'Asia/Beirut': 'easternEurope',
+                'Asia/Damascus': 'easternEurope',
+                'Asia/Jerusalem': 'easternEurope',
+                'Asia/Gaza': 'easternEurope',
+                'Asia/Hebron': 'easternEurope',
+                'Asia/Amman': 'easternEurope',
+                'Asia/Nicosia': 'easternEurope',
+                
+                // India (IST)
+                'Asia/Kolkata': 'india',
+                'Asia/Calcutta': 'india',
+                'Asia/Mumbai': 'india',
+                'Asia/Delhi': 'india',
+                'Asia/Bangalore': 'india',
+                'Asia/Chennai': 'india'
             };
             
             // Check if browser timezone matches an existing one
