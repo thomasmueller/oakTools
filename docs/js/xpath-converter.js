@@ -92,7 +92,8 @@ class XPathParser {
             isDescendant: false,
             conditions: [],
             specificElement: null,
-            startsWithJcrRoot: false
+            startsWithJcrRoot: false,
+            options: null
         };
 
         // Parse path pattern
@@ -100,6 +101,9 @@ class XPathParser {
         
         // Parse order by if present
         this.parseOrderBy(result);
+        
+        // Parse options if present
+        this.parseOptions(result);
 
         return result;
     }
@@ -126,7 +130,7 @@ class XPathParser {
         }
 
         // Parse path segments
-        while (this.pos < this.length && !this.isAtOrderBy()) {
+        while (this.pos < this.length && !this.isAtOrderBy() && !this.isAtOption()) {
             if (this.currentChar === '/') {
                 this.advance(1);
                 if (this.currentChar === '/') {
@@ -149,7 +153,7 @@ class XPathParser {
     }
 
     parseSegment() {
-        if (this.pos >= this.length || this.isAtOrderBy()) {
+        if (this.pos >= this.length || this.isAtOrderBy() || this.isAtOption()) {
             return null;
         }
 
@@ -159,7 +163,7 @@ class XPathParser {
         let inQuotes = false;
         let quoteChar = null;
         
-        while (this.pos < this.length && !this.isAtOrderBy()) {
+        while (this.pos < this.length && !this.isAtOrderBy() && !this.isAtOption()) {
             const char = this.currentChar;
             
             // Handle quotes
@@ -416,7 +420,15 @@ class XPathParser {
             this.advance(8); // length of 'order by'
             this.skipWhitespace();
 
-            const orderByClause = this.xpath.substring(this.pos);
+            // Find the end of the order by clause (before any option clause)
+            let orderByEnd = this.length;
+            const remainingQuery = this.xpath.substring(this.pos);
+            const optionIndex = remainingQuery.search(/\s+option\s*\(/);
+            if (optionIndex !== -1) {
+                orderByEnd = this.pos + optionIndex;
+            }
+
+            const orderByClause = this.xpath.substring(this.pos, orderByEnd);
             const orderItems = orderByClause.split(',');
             
             for (const item of orderItems) {
@@ -425,6 +437,9 @@ class XPathParser {
                     result.orderBy.push(this.convertOrderByExpression(trimmed));
                 }
             }
+            
+            // Advance position to the end of the order by clause
+            this.pos = orderByEnd;
         }
     }
 
@@ -485,6 +500,66 @@ class XPathParser {
         const remaining = this.xpath.substring(this.pos);
         return remaining.trimStart().startsWith('order by');
     }
+
+    isAtOption() {
+        const remaining = this.xpath.substring(this.pos);
+        return remaining.trimStart().startsWith('option(');
+    }
+
+    parseOptions(result) {
+        if (!this.isAtOption()) {
+            return;
+        }
+
+        // Skip to 'option('
+        while (this.pos < this.length && !this.matchString('option(')) {
+            this.advance(1);
+        }
+
+        if (this.matchString('option(')) {
+            this.advance(7); // length of 'option('
+            this.skipWhitespace();
+
+            // Parse options content until closing parenthesis
+            const optionsStart = this.pos;
+            let parenthesesCount = 1;
+            
+            while (this.pos < this.length && parenthesesCount > 0) {
+                if (this.currentChar === '(') {
+                    parenthesesCount++;
+                } else if (this.currentChar === ')') {
+                    parenthesesCount--;
+                }
+                
+                if (parenthesesCount > 0) {
+                    this.advance(1);
+                }
+            }
+
+            const optionsContent = this.xpath.substring(optionsStart, this.pos).trim();
+            
+            // Parse options content
+            result.options = this.parseOptionContent(optionsContent);
+            
+            if (this.currentChar === ')') {
+                this.advance(1); // consume closing parenthesis
+            }
+        }
+    }
+
+    parseOptionContent(content) {
+        const options = {};
+        
+        // Handle "index tag [tagName]" or "index tag tagName"
+        const indexTagMatch = content.match(/index\s+tag\s+\[([^\]]+)\]/) || 
+                              content.match(/index\s+tag\s+([^\s,)]+)/);
+        
+        if (indexTagMatch) {
+            options.indexTag = indexTagMatch[1];
+        }
+        
+        return options;
+    }
 }
 
 function buildSQL2Query(result) {
@@ -539,6 +614,11 @@ function buildSQL2Query(result) {
     // ORDER BY clause
     if (result.orderBy.length > 0) {
         sql2 += '\n  order by ' + result.orderBy.join(', ');
+    }
+    
+    // OPTION clause
+    if (result.options && result.options.indexTag) {
+        sql2 += '\n  option (index tag [' + result.options.indexTag + '])';
     }
     
     return sql2;

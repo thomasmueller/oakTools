@@ -416,5 +416,50 @@ runner.test('Oak test - multiple property selection', () => {
     runner.assertEqual(result.trim(), expected.trim(), 'Should handle multiple property selection');
 });
 
+runner.test('XPath OPTION clause - index tag with brackets', () => {
+    const input = '/jcr:root/content//element(*, cq:Page)[@jcr:title="test"] option(index tag [myTag])';
+    const expected = `select [jcr:path], [jcr:score], *
+  from [cq:Page] as a
+  where [jcr:title] = "test"
+  and isdescendantnode(a, '/content')
+  option (index tag [myTag])`;
+    
+    const result = convertXPathToSQL2(input);
+    runner.assertEqual(result.trim(), expected.trim(), 'Should handle OPTION clause with bracketed tag');
+});
+
+runner.test('XPath OPTION clause - index tag without brackets', () => {
+    const input = '/jcr:root/content//element(*, cq:Page)[@jcr:title="test"] option(index tag myTag)';
+    const expected = `select [jcr:path], [jcr:score], *
+  from [cq:Page] as a
+  where [jcr:title] = "test"
+  and isdescendantnode(a, '/content')
+  option (index tag [myTag])`;
+    
+    const result = convertXPathToSQL2(input);
+    runner.assertEqual(result.trim(), expected.trim(), 'Should handle OPTION clause with unbracketed tag');
+});
+
+runner.test('XPath OPTION clause - with order by', () => {
+    const input = '/jcr:root/content//element(*, cq:Page)[@jcr:title="test"] order by @jcr:created option(index tag [testTag])';
+    const expected = `select [jcr:path], [jcr:score], *
+  from [cq:Page] as a
+  where [jcr:title] = "test"
+  and isdescendantnode(a, '/content')
+  order by [jcr:created]
+  option (index tag [testTag])`;
+    
+    const result = convertXPathToSQL2(input);
+    runner.assertEqual(result.trim(), expected.trim(), 'Should handle OPTION clause with ORDER BY');
+});
+
+runner.test('XPathParser - option parsing', () => {
+    const parser = new XPathParser('//*[@title="test"] option(index tag [abc])');
+    const result = parser.parse();
+    
+    runner.assert(result.options !== null, 'Should parse options');
+    runner.assertEqual(result.options.indexTag, 'abc', 'Should extract index tag');
+});
+
 // Run all tests
 runner.run(); 

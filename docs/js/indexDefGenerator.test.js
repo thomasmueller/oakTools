@@ -108,7 +108,8 @@ ORDER BY [jcr:content/metadata/jcr:lastModified] DESC`;
                 },
                 "direction": "DESC"
             }
-        ]
+        ],
+        "options": null
     };
 
     // Act
@@ -717,6 +718,42 @@ runner.test('Should not include boost property in any index property', function(
         this.assertEqual(prop.propertyIndex, true, `${testCase.name} should have propertyIndex true`);
         this.assertEqual(prop.name.startsWith('str:'), true, `${testCase.name} should have str: prefix in name`);
     });
+});
+
+runner.test('Should handle OPTION clause with index tag', function() {
+    const testSQL = `SELECT * FROM [dam:Asset] WHERE [jcr:content/metadata/status] = 'published' OPTION (index tag [abc])`;
+    
+    console.log('Testing OPTION clause with index tag...');
+    
+    const lexer = new SQL2Lexer(testSQL);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    
+    console.log('AST options:', JSON.stringify(ast.options, null, 2));
+    
+    // Check AST has options with indexTag
+    this.assertEqual(ast.hasOwnProperty('options'), true, 'AST should have options');
+    this.assertEqual(ast.options.hasOwnProperty('indexTag'), true, 'Options should have indexTag');
+    this.assertEqual(ast.options.indexTag, 'abc', 'IndexTag should be "abc"');
+    
+    const filter = convertASTToFilter(ast);
+    
+    console.log('Filter indexTag:', filter.indexTag);
+    
+    // Check filter has indexTag
+    this.assertEqual(filter.hasOwnProperty('indexTag'), true, 'Filter should have indexTag');
+    this.assertEqual(filter.indexTag, 'abc', 'Filter indexTag should be "abc"');
+    
+    const indexDef = convertFilterToLuceneIndex(filter);
+    const indexRoot = indexDef["/oak:index/damAssetLuceneCustom"];
+    
+    console.log('Index definition tags:', indexRoot.tags);
+    
+    // Check index definition has tags
+    this.assertEqual(indexRoot.hasOwnProperty('tags'), true, 'Index definition should have tags');
+    this.assertEqual(Array.isArray(indexRoot.tags), true, 'Tags should be an array');
+    this.assertEqual(indexRoot.tags.length, 1, 'Tags array should have one element');
+    this.assertEqual(indexRoot.tags[0], 'abc', 'Tags should contain "abc"');
 });
 
 // Run the tests

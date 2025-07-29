@@ -89,7 +89,10 @@ class SQL2Lexer {
             'IN': 'IN',
             'AS': 'AS',
             'CAST': 'CAST',
-            'CONTAINS': 'CONTAINS'
+            'CONTAINS': 'CONTAINS',
+            'OPTION': 'OPTION',
+            'TAG': 'TAG',
+            'INDEX': 'INDEX'
         };
         
         return {
@@ -221,7 +224,8 @@ class SQL2Parser {
             columns: [],
             from: null,
             where: null,
-            orderBy: []
+            orderBy: [],
+            options: null
         };
 
         this.consume('SELECT');
@@ -241,6 +245,11 @@ class SQL2Parser {
             this.advance();
             this.consume('BY');
             node.orderBy = this.parseOrderByList();
+        }
+
+        if (this.match('OPTION')) {
+            this.advance();
+            node.options = this.parseOptions();
         }
 
         return node;
@@ -575,6 +584,42 @@ class SQL2Parser {
 
         return orderBy;
     }
+
+    parseOptions() {
+        this.consume('LPAREN');
+        const options = {};
+        
+        do {
+            if (this.match('INDEX')) {
+                this.advance();
+                this.consume('TAG');
+                
+                // Expect either a bracketed name or identifier for the tag
+                let tagValue = null;
+                if (this.match('BRACKETED_NAME')) {
+                    tagValue = this.advance().value;
+                } else if (this.match('IDENTIFIER')) {
+                    tagValue = this.advance().value;
+                } else {
+                    throw new Error('Expected tag name after INDEX TAG');
+                }
+                
+                options.indexTag = tagValue;
+            } else {
+                // Skip unknown options for now
+                this.advance();
+            }
+            
+            if (this.match('COMMA')) {
+                this.advance();
+            } else {
+                break;
+            }
+        } while (!this.match('RPAREN'));
+        
+        this.consume('RPAREN');
+        return options;
+    }
 }
 
 // Convert AST to Oak Filter representation
@@ -589,7 +634,8 @@ function convertASTToFilter(ast) {
         isFulltextSearchable: false,
         properties: new Set(),
         pathPrefix: null,
-        pathGlob: null
+        pathGlob: null,
+        indexTag: null
     };
 
     if (ast.type === 'SelectStatement') {
@@ -628,6 +674,13 @@ function convertASTToFilter(ast) {
                     }
                 }
             });
+        }
+
+        // Extract options (index tag, etc.)
+        if (ast.options) {
+            if (ast.options.indexTag) {
+                filter.indexTag = ast.options.indexTag;
+            }
         }
     }
 
@@ -845,6 +898,11 @@ function convertFilterToLuceneIndex(filter) {
     };
 
     const indexRoot = indexDef[`/oak:index/${indexName}`];
+
+    // Add tags if indexTag is specified
+    if (filter.indexTag) {
+        indexRoot.tags = [filter.indexTag];
+    }
 
     // Add included paths if path restrictions exist
     if (filter.pathPrefix) {
@@ -1158,6 +1216,11 @@ function formatFilter(filter) {
     
     // Add fulltext search flag
     cleanFilter.isFulltextSearchable = filter.isFulltextSearchable;
+    
+    // Add index tag if present
+    if (filter.indexTag) {
+        cleanFilter.indexTag = filter.indexTag;
+    }
     
     // Use the existing json-formatter for consistent formatting
     let formatter;

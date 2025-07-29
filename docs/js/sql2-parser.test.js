@@ -260,6 +260,28 @@ runner.test('Parser - Multiple SQL-2 functions', function() {
     this.assertEqual(ast.columns[2].expression.name, 'NAME');
 });
 
+runner.test('Parser - OPTION clause', function() {
+    const sql = "SELECT * FROM [nt:base] WHERE [name] = 'test' OPTION (index tag [myTag])";
+    const lexer = new SQL2Lexer(sql);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    
+    this.assertEqual(ast.type, 'SelectStatement');
+    this.assertTrue(ast.options !== null);
+    this.assertEqual(ast.options.indexTag, 'myTag');
+});
+
+runner.test('Parser - OPTION clause with identifier tag', function() {
+    const sql = "SELECT * FROM [nt:base] WHERE [name] = 'test' OPTION (index tag myTag)";
+    const lexer = new SQL2Lexer(sql);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    
+    this.assertEqual(ast.type, 'SelectStatement');
+    this.assertTrue(ast.options !== null);
+    this.assertEqual(ast.options.indexTag, 'myTag');
+});
+
 // Filter conversion tests
 runner.test('Filter conversion - Basic query', function() {
     const lexer = new SQL2Lexer("SELECT [jcr:title] FROM [nt:base] WHERE [jcr:path] LIKE '/content/%'");
@@ -352,7 +374,7 @@ runner.test('Lucene index generation - Basic structure', function() {
 });
 
 runner.test('Lucene index generation - IndexRules properties', function() {
-    const lexer = new SQL2Lexer("SELECT [jcr:title], [jcr:created] FROM [nt:base] ORDER BY [jcr:created] DESC");
+    const lexer = new SQL2Lexer("SELECT [jcr:title], [jcr:created] FROM [nt:base] WHERE [jcr:title] IS NOT NULL ORDER BY [jcr:created] DESC");
     const parser = new SQL2Parser(lexer.tokens);
     const ast = parser.parseQuery();
     const filter = convertASTToFilter(ast);
@@ -362,14 +384,14 @@ runner.test('Lucene index generation - IndexRules properties', function() {
     const index = indexDef[indexKey];
     const properties = index.indexRules['nt:base'].properties;
     
-    this.assertTrue('jcrtitle' in properties);
-    this.assertTrue('jcrcreated' in properties);
+    this.assertTrue('title' in properties);
+    this.assertTrue('created' in properties);
     
     // jcr:created should be ordered (used in ORDER BY)
-    this.assertEqual(properties.jcrcreated.ordered, true);
+    this.assertEqual(properties.created.ordered, true);
     
     // jcr:title property should not have boost
-    this.assertEqual(properties.jcrtitle.hasOwnProperty('boost'), false, 'Title should not have boost property');
+    this.assertEqual(properties.title.hasOwnProperty('boost'), false, 'Title should not have boost property');
 });
 
 runner.test('Complex query test', function() {
