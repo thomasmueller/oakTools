@@ -82,6 +82,16 @@
             font-size: 14px;
             box-sizing: border-box;
         }
+        #queryInput {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
         select {
             width: 100%;
             padding: 8px;
@@ -149,8 +159,8 @@
         <h2>Query</h2>
         <div class="query-controls">
             <div style="flex: 1;">
-                <label for="queryInput"><a href="https://jqlang.github.io/jq/" target="_blank" style="color: #333; text-decoration: none;">jq Expression</a></label>
-                <input type="text" id="queryInput" placeholder="Enter jq query (e.g., .people[0].name, .people[] | select(.age > 30))">
+                <label for="queryInput"><a href="https://jqlang.github.io/jq/" target="_blank" style="color: #333; text-decoration: none;">JQ Expression</a></label>
+                <textarea id="queryInput" style="height: 250px;"rows="10" placeholder="Enter JQ query (e.g., .people[0].name, .people[] | select(.age > 30))"></textarea>
                 <select id="exampleQueries">
                     <option value="">Select a common expression...</option>
                     <option value=".people[0].name">.people[0].name - Get first person's name</option>
