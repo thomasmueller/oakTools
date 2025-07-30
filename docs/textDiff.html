@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Diff</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .format-button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .format-diff-button {
+            padding: 12px 24px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .format-diff-button:hover {
+            background-color: #005a87;
+        }
+        .text-panels {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .text-panel {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .text-panel h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .text-textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .diff-panels {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .diff-container {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .diff-container h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        .diff-content {
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            min-height: 300px;
+            line-height: 1.4;
+        }
+        .diff-line {
+            margin: 0;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        .diff-removed {
+            color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .diff-added {
+            color: #28a745;
+            background-color: #d4edda;
+        }
+        .diff-changed {
+            color: #6c757d;
+            background-color: #e2e3e5;
+        }
+        .diff-unchanged {
+            color: #495057;
+        }
+        .diff-empty {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            opacity: 0.5;
+        }
+        .line-number {
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+            margin-right: 10px;
+            color: #6c757d;
+            font-size: 12px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        @media (max-width: 700px) {
+            .text-panels,
+            .diff-panels {
+                flex-direction: column;
+            }
+            
+            .text-textarea {
+                height: 100px;
+            }
+            
+            .diff-content {
+                min-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>Text Diff</h1>
+    </div>
+    
+    <div class="container">
+        <div class="format-button-container">
+            <button class="format-diff-button" onclick="performDiff()">Compare Text</button>
+        </div>
+        
+        <div class="text-panels">
+            <div class="text-panel">
+                <h2>Before</h2>
+                <textarea id="beforeText" class="text-textarea" placeholder="Enter original text here..."></textarea>
+            </div>
+            
+            <div class="text-panel">
+                <h2>After</h2>
+                <textarea id="afterText" class="text-textarea" placeholder="Enter modified text here..."></textarea>
+            </div>
+        </div>
+        
+        <div class="diff-panels">
+            <div class="diff-container">
+                <div id="leftDiffResult" class="diff-content"></div>
+            </div>
+            
+            <div class="diff-container">
+                <div id="rightDiffResult" class="diff-content"></div>
+            </div>
+        </div>
+        
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        <div id="successMessage" class="success" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Load default example text when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const beforeExample = `Hello world
+Removed line
+Some common line
+Another line`;
+            
+            const afterExample = `Hello world
+Some common line
+Another line
+Extra line`;
+            
+            document.getElementById('beforeText').value = beforeExample;
+            document.getElementById('afterText').value = afterExample;
+        });
+
+        // IDE-style diff algorithm that creates synchronized side-by-side view
+        function computeDiff(beforeLines, afterLines) {
+            const result = {
+                left: [],   // Synchronized left panel (before text with gaps)
+                right: []   // Synchronized right panel (after text with gaps)
+            };
+            
+            let beforeIndex = 0;
+            let afterIndex = 0;
+            let displayLineNumber = 1;
+            
+            while (beforeIndex < beforeLines.length || afterIndex < afterLines.length) {
+                const beforeLine = beforeIndex < beforeLines.length ? beforeLines[beforeIndex] : null;
+                const afterLine = afterIndex < afterLines.length ? afterLines[afterIndex] : null;
+                
+                if (beforeLine === null) {
+                    // Only after line exists (addition)
+                    result.left.push({
+                        type: 'empty',
+                        content: '',
+                        lineNumber: displayLineNumber,
+                        isEmpty: true
+                    });
+                    result.right.push({
+                        type: 'added',
+                        content: afterLine,
+                        lineNumber: displayLineNumber,
+                        originalLineNumber: afterIndex + 1
+                    });
+                    afterIndex++;
+                } else if (afterLine === null) {
+                    // Only before line exists (deletion)
+                    result.left.push({
+                        type: 'removed',
+                        content: beforeLine,
+                        lineNumber: displayLineNumber,
+                        originalLineNumber: beforeIndex + 1
+                    });
+                    result.right.push({
+                        type: 'empty',
+                        content: '',
+                        lineNumber: displayLineNumber,
+                        isEmpty: true
+                    });
+                    beforeIndex++;
+                } else if (beforeLine === afterLine) {
+                    // Lines are identical
+                    result.left.push({
+                        type: 'unchanged',
+                        content: beforeLine,
+                        lineNumber: displayLineNumber,
+                        originalLineNumber: beforeIndex + 1
+                    });
+                    result.right.push({
+                        type: 'unchanged',
+                        content: afterLine,
+                        lineNumber: displayLineNumber,
+                        originalLineNumber: afterIndex + 1
+                    });
+                    beforeIndex++;
+                    afterIndex++;
+                } else {
+                    // Lines are different - look ahead to see if this is insertion, deletion, or change
+                    let isInsertion = false;
+                    let isDeletion = false;
+                    
+                    // Look ahead in after for current before line (possible insertion)
+                    for (let i = afterIndex + 1; i < Math.min(afterIndex + 5, afterLines.length); i++) {
+                        if (afterLines[i] === beforeLine) {
+                            isInsertion = true;
+                            break;
+                        }
+                    }
+                    
+                    // Look ahead in before for current after line (possible deletion)
+                    if (!isInsertion) {
+                        for (let i = beforeIndex + 1; i < Math.min(beforeIndex + 5, beforeLines.length); i++) {
+                            if (beforeLines[i] === afterLine) {
+                                isDeletion = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (isInsertion) {
+                        // Current after line is inserted
+                        result.left.push({
+                            type: 'empty',
+                            content: '',
+                            lineNumber: displayLineNumber,
+                            isEmpty: true
+                        });
+                        result.right.push({
+                            type: 'added',
+                            content: afterLine,
+                            lineNumber: displayLineNumber,
+                            originalLineNumber: afterIndex + 1
+                        });
+                        afterIndex++;
+                    } else if (isDeletion) {
+                        // Current before line is deleted
+                        result.left.push({
+                            type: 'removed',
+                            content: beforeLine,
+                            lineNumber: displayLineNumber,
+                            originalLineNumber: beforeIndex + 1
+                        });
+                        result.right.push({
+                            type: 'empty',
+                            content: '',
+                            lineNumber: displayLineNumber,
+                            isEmpty: true
+                        });
+                        beforeIndex++;
+                    } else {
+                        // Lines are changed
+                        result.left.push({
+                            type: 'changed',
+                            content: beforeLine,
+                            lineNumber: displayLineNumber,
+                            originalLineNumber: beforeIndex + 1
+                        });
+                        result.right.push({
+                            type: 'changed',
+                            content: afterLine,
+                            lineNumber: displayLineNumber,
+                            originalLineNumber: afterIndex + 1
+                        });
+                        beforeIndex++;
+                        afterIndex++;
+                    }
+                }
+                
+                displayLineNumber++;
+            }
+            
+            return result;
+        }
+
+        function renderDiffPanel(lines, containerId) {
+            const container = document.getElementById(containerId);
+            let html = '';
+            
+            if (lines.length === 0) {
+                html = 'No text to compare.';
+            } else {
+                lines.forEach(line => {
+                    const lineNumber = `<span class="line-number">${line.lineNumber}:</span>`;
+                    let content;
+                    
+                    if (line.isEmpty) {
+                        // Empty line - show non-breaking space to maintain height
+                        content = '&nbsp;';
+                    } else {
+                        content = escapeHtml(line.content);
+                        // If line is completely empty (but not a gap), show a placeholder
+                        if (content.trim() === '') {
+                            content = '&nbsp;';
+                        }
+                    }
+                    
+                    html += `<div class="diff-line diff-${line.type}">${lineNumber}${content}</div>`;
+                });
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function performDiff() {
+            const beforeTextarea = document.getElementById('beforeText');
+            const afterTextarea = document.getElementById('afterText');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            try {
+                const beforeText = beforeTextarea.value;
+                const afterText = afterTextarea.value;
+                
+                // Split text into lines
+                const beforeLines = beforeText.split('\n');
+                const afterLines = afterText.split('\n');
+                
+                // Compute diff
+                const diffResult = computeDiff(beforeLines, afterLines);
+                
+                // Render synchronized diff panels (no filtering needed - show all lines)
+                renderDiffPanel(diffResult.left, 'leftDiffResult');
+                renderDiffPanel(diffResult.right, 'rightDiffResult');
+                
+                // Count actual changes for success message
+                const totalChanges = diffResult.left.filter(line => 
+                    line.type === 'removed' || line.type === 'changed' || line.type === 'added'
+                ).length;
+                
+                if (totalChanges === 0) {
+                    successMessage.textContent = 'No differences found between the texts.';
+                    successMessage.style.display = 'block';
+                } else {
+                    successMessage.textContent = `Diff completed successfully. Found ${totalChanges} changes across ${diffResult.left.length} synchronized lines.`;
+                    successMessage.style.display = 'block';
+                }
+                
+            } catch (error) {
+                errorMessage.textContent = 'Error performing diff: ' + error.message;
+                errorMessage.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html> 
