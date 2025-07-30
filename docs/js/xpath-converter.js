@@ -1,34 +1,6 @@
 // XPath to SQL-2 Converter
 // Based on Apache Jackrabbit Oak XPathToSQL2Converter logic
 
-function convertXPath() {
-    const xpathInput = document.getElementById('xpathInput');
-    const sql2Output = document.getElementById('sql2Output');
-    const xpathError = document.getElementById('xpathError');
-    const xpathSuccess = document.getElementById('xpathSuccess');
-    
-    xpathError.style.display = 'none';
-    xpathSuccess.style.display = 'none';
-    
-    try {
-        const xpath = xpathInput.value.trim();
-        if (xpath === '') {
-            sql2Output.value = '';
-            return;
-        }
-        
-        const sql2 = convertXPathToSQL2(xpath);
-        sql2Output.value = sql2;
-        xpathSuccess.textContent = 'XPath successfully converted to SQL-2!';
-        xpathSuccess.style.display = 'block';
-        
-    } catch (error) {
-        sql2Output.value = '';
-        xpathError.textContent = 'Error: ' + error.message;
-        xpathError.style.display = 'block';
-    }
-}
-
 function convertXPathToSQL2(xpath) {
     // Handle special cases and prefixes
     let query = xpath.trim();
@@ -681,39 +653,6 @@ function convertCondition(condition) {
     condition = condition.replace(/^\((.*)\)$/, '$1');
     
     return condition;
-}
-
-
-
-// Initialize page functionality
-function initializeXPathConverter() {
-    // Auto-convert on input change
-    const xpathInput = document.getElementById('xpathInput');
-    if (xpathInput) {
-        xpathInput.addEventListener('input', function() {
-            if (this.value.trim() === '') {
-                document.getElementById('sql2Output').value = '';
-                document.getElementById('xpathError').style.display = 'none';
-                document.getElementById('xpathSuccess').style.display = 'none';
-            } else {
-                convertXPath();
-            }
-        });
-
-        // Initialize with default conversion
-        convertXPath();
-    }
-}
-
-
-
-// Initialize converter when DOM is ready
-if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeXPathConverter);
-    } else {
-        initializeXPathConverter();
-    }
 }
 
 // Export functions for testing (if in Node.js environment)
