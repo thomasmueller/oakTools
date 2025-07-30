@@ -199,7 +199,7 @@
                 <h2>Query</h2>
                 <textarea id="sqlInput" class="sql-textarea" placeholder="Enter SQL-2 or XPath query here...">select    * 
 from     [dam:Asset] 
-where    isdescendentnode('/content/dam') 
+where    isdescendantnode('/content/dam') 
 and      [jcr:created] > '2025-01-01'
 order by [jcr:created] asc
 option   (index tag [abc])
@@ -235,7 +235,7 @@ option   (index tag [abc])
 
     <script src="js/json-formatter.js"></script>
     <script src="js/sql2-parser.js"></script>
-    <script src="js/xpath-converter.js"></script>
+    <script src="js/xpath2.js"></script>
     <script src="js/indexDefGenerator.js"></script>
 </body>
 </html> 
