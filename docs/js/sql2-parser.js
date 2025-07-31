@@ -1001,11 +1001,20 @@ function extractPathConstraint(pathPattern, filter) {
         function formatFunctionCall(node) {
             if (!node || node.type !== 'Function') return null;
             
-            // Special handling for path() function - always format as path() regardless of selector
+            // Special handling for path(), localname(), and name() functions - always format as path() regardless of selector
             if (node.name === 'path') {
                 return 'path()';
             }
-            
+            if (node.name === 'localname') {
+                return 'localname()';
+            }
+            if (node.name === 'name') {
+                return 'name()';
+            }
+            if (node.name === 'score') {
+                return 'score()';
+            }
+
             const args = node.arguments.map(arg => {
                 if (arg.type === 'Property') {
                     return `[${arg.name}]`;

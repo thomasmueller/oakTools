@@ -179,19 +179,15 @@
     </div>
     
     <div class="note-panel">
-        <strong>Note:</strong> see also the <a href="https://experienceleague.adobe.com/docs/experience-manager-65/assets/JCR_query_cheatsheet-v1.1.pdf?lang=en" target="_blank">JCR Query Cheatsheet</a>
+        <strong>Note:</strong> see also the <a href="https://experienceleague.adobe.com/docs/experience-manager-65/assets/JCR_query_cheatsheet-v1.1.pdf?lang=en" target="_blank">JCR Query Cheatsheet</a>,
+        and the <a href="https://jackrabbit.apache.org/oak/docs/query/lucene.html" target="_blank">Oak Lucene index documentation</a>.
+        Query syntax documentation: <a href="https://jackrabbit.apache.org/oak/docs/query/grammar-xpath.html" target="_blank">XPath</a> and
+        <a href="https://jackrabbit.apache.org/oak/docs/query/grammar-sql2.html" target="_blank">SQL-2</a>.
     </div>
     
     <div class="container">
         <div class="button-container">
             <button class="parse-button" id="generateButton">Generate Index</button>
-            <div class="checkbox-container">
-                <input type="checkbox" id="detailsCheckbox" class="details-checkbox">
-                <label for="detailsCheckbox" class="checkbox-label">Show Details (AST & Filter)</label>
-            </div>
-            <div style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
-                Supports both SQL-2 and XPath queries. XPath queries are automatically converted to SQL-2.
-            </div>
         </div>
         
         <div class="panels">
@@ -231,6 +227,11 @@ option   (index tag [abc])
         <div id="errorMessage" class="error" style="display: none;"></div>
         <div id="warningMessage" class="warning" style="display: none;"></div>
         <div id="successMessage" class="success" style="display: none;"></div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="detailsCheckbox" class="details-checkbox">
+            <label for="detailsCheckbox" class="checkbox-label">Show Details (AST & Filter)</label>
+        </div>
+
     </div>
 
     <script src="js/json-formatter.js"></script>
