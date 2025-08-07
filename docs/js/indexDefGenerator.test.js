@@ -485,7 +485,7 @@ WHERE LOWER([jcr:content/metadata/status]) = 'published'`;
     this.assertEqual(filter.propertyRestrictions.length, 1, 'Should have one property restriction');
     
     const restriction = filter.propertyRestrictions[0];
-    this.assertEqual(restriction.propertyName, 'LOWER([jcr:content/metadata/status])', 
+    this.assertEqual(restriction.propertyName, 'lower([jcr:content/metadata/status])', 
         'Property name should include the LOWER function');
     this.assertEqual(restriction.isFunction, true, 'Should mark as function');
     this.assertEqual(restriction.operator, '=', 'Should have equals operator');
@@ -504,7 +504,7 @@ WHERE LOWER([jcr:content/metadata/status]) = 'published'`;
     this.assertEqual(!!functionProp, true, 'Should have a property with function defined');
     
     if (functionProp) {
-        this.assertEqual(functionProp.function, 'LOWER([jcr:content/metadata/status])', 
+        this.assertEqual(functionProp.function, 'lower([jcr:content/metadata/status])', 
             'Function should be preserved');
         this.assertEqual(functionProp.hasOwnProperty('name'), false, 
             'Should not have name property when function is used');
@@ -758,6 +758,139 @@ runner.test('Should handle OPTION clause with index tag', function() {
     // Check index definition has selectionPolicy when tags are present
     this.assertEqual(indexRoot.hasOwnProperty('selectionPolicy'), true, 'Index definition should have selectionPolicy when tags are present');
     this.assertEqual(indexRoot.selectionPolicy, 'tag', 'SelectionPolicy should be "tag" when tags are present');
+});
+
+runner.test('Should generate correct filter for DAM Asset query with path restriction and LIKE operator', function() {
+    // Arrange
+    const testSQL = `select a.[jcr:path], a.[jcr:score], a.* 
+from [dam:Asset] as a 
+where (isdescendantnode(a, '/content/dam/bot') 
+and lower(a.[jcr:content/data/master/INST_BR_NM_T]) like '%0932%') 
+order by lower(a.[jcr:content/data/master/BRANCH_CODE])`;
+
+    // Expected filter structure
+    const expectedFilter = {
+        "type": "Filter",
+        "selector": "a",
+        "nodeType": "dam:Asset",
+        "pathRestrictions": [ {
+            "type": "PATH_PREFIX",
+            "path": "/content/dam/bot"
+        } ],
+        "propertyRestrictions": [ {
+            "propertyName": "lower([jcr:content/data/master/INST_BR_NM_T])",
+            "operator": "LIKE",
+            "value": "%0932%",
+            "propertyType": "string",
+            "isFunction": true
+        } ],
+        "sortOrder": [ {
+            "property": "lower([jcr:content/data/master/BRANCH_CODE])",
+            "direction": "ASC"
+        } ],
+        "isFulltextSearchable": false,
+        "properties": {},
+        "pathPrefix": "/content/dam/bot",
+        "pathGlob": null,
+        "indexTag": null
+    };
+
+    // Act - Parse SQL and convert to filter
+    const lexer = new SQL2Lexer(testSQL);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    
+    console.log('Generated AST:', JSON.stringify(ast, null, 2));
+    
+    const actualFilter = convertASTToFilter(ast);
+    
+    console.log('Generated filter:', JSON.stringify(actualFilter, null, 2));
+
+    // Assert - Verify the complete filter structure
+    this.assertEqual(actualFilter, expectedFilter, 'Generated filter should match expected structure');
+
+    // Assert - Verify specific filter properties
+    this.assertEqual(actualFilter.nodeType, "dam:Asset", 'Should query dam:Asset node type');
+    this.assertEqual(actualFilter.selector, "a", 'Should have selector "a"');
+    this.assertEqual(actualFilter.pathPrefix, "/content/dam/bot", 'Should have correct path prefix');
+    
+    // Verify path restrictions
+    this.assertEqual(actualFilter.pathRestrictions.length, 1, 'Should have one path restriction');
+    this.assertEqual(actualFilter.pathRestrictions[0].type, "PATH_PREFIX", 'Should have PATH_PREFIX type');
+    this.assertEqual(actualFilter.pathRestrictions[0].path, "/content/dam/bot", 'Should have correct path');
+    
+    // Verify property restrictions
+    this.assertEqual(actualFilter.propertyRestrictions.length, 1, 'Should have one property restriction');
+    const propRestriction = actualFilter.propertyRestrictions[0];
+    this.assertEqual(propRestriction.isFunction, true, 'Should mark as function');
+    this.assertEqual(propRestriction.operator, "LIKE", 'Should use LIKE operator');
+    this.assertEqual(propRestriction.propertyName, "lower([jcr:content/data/master/INST_BR_NM_T])", 'Should have correct property name with function');
+    this.assertEqual(propRestriction.value, "%0932%", 'Should have correct LIKE value');
+    this.assertEqual(propRestriction.propertyType, "string", 'Should have string property type');
+    
+    // Verify sort order
+    this.assertEqual(actualFilter.sortOrder.length, 1, 'Should have one sort order');
+    this.assertEqual(actualFilter.sortOrder[0].direction, "ASC", 'Should sort ascending (default)');
+    this.assertEqual(actualFilter.sortOrder[0].property, "lower([jcr:content/data/master/BRANCH_CODE])", 'Should sort by correct property');
+    
+    // Verify other properties
+    this.assertEqual(actualFilter.type, "Filter", 'Should have Filter type');
+    this.assertEqual(actualFilter.isFulltextSearchable, false, 'Should not be fulltext searchable');
+});
+
+runner.test('Should generate correct index definition for function-based sorting', function() {
+    // Arrange
+    const testSQL = `select * from [dam:Asset] order by lower([abc])`;
+
+    // Expected index definition
+    const expectedIndexDef = {
+        "/oak:index/damAssetLucene-12-custom-1": {
+            "jcr:primaryType": "oak:QueryIndexDefinition",
+            "type": "lucene",
+            "async": [ "async", "nrt" ],
+            "compatVersion": 2,
+            "evaluatePathRestrictions": true,
+            "indexRules": {
+                "jcr:primaryType": "nt:unstructured",
+                "dam:Asset": {
+                    "jcr:primaryType": "nt:unstructured",
+                    "properties": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "lower": {
+                            "jcr:primaryType": "nt:unstructured",
+                            "name": "str:lower([abc])",
+                            "ordered": true,
+                            "propertyIndex": true
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    // Act - Full pipeline: SQL -> AST -> Filter -> Index Definition
+    const lexer = new SQL2Lexer(testSQL);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    
+    console.log('Generated AST:', JSON.stringify(ast, null, 2));
+    
+    const filter = convertASTToFilter(ast);
+    console.log('Generated filter:', JSON.stringify(filter, null, 2));
+    
+    const actualIndexDef = convertFilterToLuceneIndex(filter);
+    console.log('Generated index definition:', JSON.stringify(actualIndexDef, null, 2));
+
+    // Assert - Verify the complete structure
+    this.assertEqual(actualIndexDef, expectedIndexDef, 'Generated index definition should match expected structure');
+
+    // Assert - Verify specific properties exist
+    const properties = actualIndexDef["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
+    
+    this.assertEqual(properties.hasOwnProperty("lower"), true, 'Should have lower property');
+    this.assertEqual(properties["lower"]["name"], "str:lower([abc])", 'Should have correct function name');
+    this.assertEqual(properties["lower"]["ordered"], true, 'Should be ordered for sorting');
+    this.assertEqual(properties["lower"]["propertyIndex"], true, 'Should have propertyIndex');
 });
 
 // Run the tests

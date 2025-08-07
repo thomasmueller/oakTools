@@ -742,7 +742,7 @@ function convertASTToFilter(ast) {
         if (ast.orderBy && ast.orderBy.length > 0) {
             ast.orderBy.forEach(orderItem => {
                 const sortField = {
-                    property: extractPropertyName(orderItem.expression),
+                    property: extractSortPropertyName(orderItem.expression),
                     direction: orderItem.direction || 'ASC'
                 };
                 filter.sortOrder.push(sortField);
@@ -768,6 +768,9 @@ function convertASTToFilter(ast) {
             }
         }
     }
+
+    // Convert Set to empty object for JSON serialization compatibility
+    filter.properties = {};
 
     return filter;
 }
@@ -1062,6 +1065,49 @@ function extractPathConstraint(pathPattern, filter) {
             }
         }
 
+        function extractSortPropertyName(node) {
+            if (!node) return null;
+            
+            switch (node.type) {
+                case 'Property':
+                    return node.name;
+                case 'Identifier':
+                    return node.name;
+                case 'Function':
+                    // For special functions like PATH(selector), NAME(), LOCALNAME(), SCORE()
+                    if (node.name === 'path') {
+                        // If path has a selector argument, return the selector name
+                        if (node.arguments && node.arguments.length > 0 && node.arguments[0].type === 'Identifier') {
+                            return node.arguments[0].name;
+                        }
+                        return ':path';
+                    }
+                    if (node.name === 'name' || node.name === 'localname' || node.name === 'score') {
+                        return `:${node.name.toLowerCase()}`;
+                    }
+                    // For sort order, preserve the full function call with its arguments
+                    if (node.arguments && node.arguments.length > 0) {
+                        const args = node.arguments.map(arg => {
+                            if (arg.type === 'Property') {
+                                return `[${arg.name}]`;
+                            } else if (arg.type === 'Identifier') {
+                                return arg.name;
+                            } else if (arg.type === 'Literal') {
+                                return arg.value;
+                            }
+                            return extractSortPropertyName(arg);
+                        }).join(', ');
+                        return `${node.name}(${args})`;
+                    }
+                    return node.name;
+                case 'Cast':
+                    // For CAST expressions, extract from the inner expression
+                    return extractSortPropertyName(node.expression);
+                default:
+                    return null;
+            }
+        }
+
         function extractLiteralValue(node) {
             if (!node) return undefined;
             
@@ -1165,7 +1211,10 @@ function convertFilterToLuceneIndex(filter) {
 
     // Sort properties are always needed as ordered
     filter.sortOrder.forEach(sort => {
-        allProperties.add(sort.property);
+        // Only add non-function properties to allProperties
+        if (!sort.property.includes('(')) {
+            allProperties.add(sort.property);
+        }
     });
 
     // Generate property keys with proper naming rules and duplicate handling
@@ -1177,6 +1226,17 @@ function convertFilterToLuceneIndex(filter) {
         const propDef = createPropertyDefinition(prop, filter);
         if (propDef) {
             properties[propKey] = propDef;
+        }
+    });
+
+    // Handle function-based sort properties
+    filter.sortOrder.forEach(sort => {
+        if (sort.property.includes('(')) {
+            const functionKey = extractFunctionKeyFromSort(sort.property, usedKeys);
+            const propDef = createFunctionSortPropertyDefinition(sort, filter);
+            if (propDef) {
+                properties[functionKey] = propDef;
+            }
         }
     });
     
@@ -1513,6 +1573,38 @@ function formatLuceneIndex(indexDef) {
     // Sort object keys for consistent output and format
     const sortedIndexDef = formatter.sortObjectKeys(indexDef);
     return formatter.formatJSONCustom(sortedIndexDef, 0);
+}
+
+function extractFunctionKeyFromSort(sortProperty, usedKeys) {
+    // Extract function name from expressions like "lower([abc])"
+    const match = sortProperty.match(/^(\w+)\(/);
+    if (match) {
+        let functionKey = match[1]; // e.g., "lower"
+        
+        // Ensure uniqueness
+        let counter = 1;
+        while (usedKeys.has(functionKey)) {
+            functionKey = `${match[1]}_${counter}`;
+            counter++;
+        }
+        
+        usedKeys.add(functionKey);
+        return functionKey;
+    }
+    
+    // Fallback to general property key generation
+    return generatePropertyKey(sortProperty, usedKeys);
+}
+
+function createFunctionSortPropertyDefinition(sort, filter) {
+    const propDef = {
+        "jcr:primaryType": "nt:unstructured",
+        "name": `str:${sort.property}`,
+        "ordered": true,
+        "propertyIndex": true
+    };
+    
+    return propDef;
 }
 
 // Export for Node.js testing environment
