@@ -136,15 +136,56 @@ function initializeIndexDefGenerator() {
         detailsCheckbox.addEventListener('change', toggleDetailedPanels);
     }
     
-    // Allow Ctrl+Enter to trigger parsing
+    // Allow Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to trigger parsing
     const sqlInput = document.getElementById('sqlInput');
     if (sqlInput) {
         sqlInput.addEventListener('keydown', function(event) {
-            if (event.ctrlKey && event.key === 'Enter') {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
                 parseSQL2();
             }
         });
     }
+    
+    // Add Cmd+A (Mac) / Ctrl+A (Windows/Linux) support for output divs
+    function addSelectAllSupport(element) {
+        if (element) {
+            // Make the element focusable
+            element.setAttribute('tabindex', '0');
+            
+            element.addEventListener('keydown', function(event) {
+                // Handle both Cmd+A (Mac) and Ctrl+A (Windows/Linux)
+                if ((event.metaKey || event.ctrlKey) && event.key === 'a') {
+                    event.preventDefault();
+                    selectAllText(element);
+                }
+            });
+            
+            // Also add click to focus
+            element.addEventListener('click', function() {
+                element.focus();
+            });
+        }
+    }
+    
+    // Function to select all text in an element
+    function selectAllText(element) {
+        if (window.getSelection && document.createRange) {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+    
+    // Add support to all output elements
+    const indexOutput = document.getElementById('indexOutput');
+    const astOutput = document.getElementById('astOutput');
+    const filterOutput = document.getElementById('filterOutput');
+    
+    addSelectAllSupport(indexOutput);
+    addSelectAllSupport(astOutput);
+    addSelectAllSupport(filterOutput);
 }
 
 // Initialize when DOM content is loaded

@@ -113,6 +113,12 @@
             font-size: 14px;
             resize: vertical;
             box-sizing: border-box;
+            cursor: text;
+        }
+        textarea:focus {
+            outline: 2px solid #007cba;
+            outline-offset: -2px;
+            border-color: #007cba;
         }
         .right-column {
             background-color: #f8f9fa;
@@ -429,6 +435,15 @@
         });
         document.getElementById('replaceText').addEventListener('input', autoApply);
         document.getElementById('inputText').addEventListener('input', autoApply);
+    </script>
+    
+    <script src="js/select-all-support.js"></script>
+    <script>
+        // Initialize select all support when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add select all support to the output textarea
+            addSelectAllSupportToElements(['outputText']);
+        });
     </script>
 </body>
 </html> 

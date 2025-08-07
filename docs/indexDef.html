@@ -51,6 +51,12 @@
             font-size: 12px;
             resize: vertical;
             box-sizing: border-box;
+            cursor: text;
+        }
+        textarea:focus {
+            outline: 2px solid #007cba;
+            outline-offset: -2px;
+            border-color: #007cba;
         }
         .error {
             color: red;
@@ -298,6 +304,15 @@
                 document.getElementById('jsonError').style.display = 'none';
                 document.getElementById('jsonSuccess').style.display = 'none';
             }
+        });
+    </script>
+    
+    <script src="js/select-all-support.js"></script>
+    <script>
+        // Initialize select all support when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add select all support to the XML output textarea
+            addSelectAllSupportToElements(['xmlInput']);
         });
     </script>
 </body>

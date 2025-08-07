@@ -51,6 +51,12 @@
             font-size: 14px;
             resize: vertical;
             box-sizing: border-box;
+            cursor: text;
+        }
+        textarea:focus {
+            outline: 2px solid #007cba;
+            outline-offset: -2px;
+            border-color: #007cba;
         }
         .info {
             color: #666;
@@ -106,9 +112,14 @@
     <div class="container">
         <div class="column">
             <h2>Input</h2>
-            <textarea id="inputText" placeholder="Paste your text with revision IDs here..."></textarea>
+            <textarea id="inputText" placeholder="Paste text with revision IDs or _modified timestamps here...
+
+Examples:
+r181e30b0ec7-0-1
+_modified: Long('1753807155')"></textarea>
             <div class="info">
-                Converts revision IDs like "r14de69eb812-0-1" to include ISO 8601 timestamps
+                Converts revision IDs like "r14de69eb812-0-1" to include ISO 8601 timestamps<br>
+                Converts _modified epoch timestamps to readable format
             </div>
         </div>
         
@@ -116,12 +127,38 @@
             <h2>Formatted Revisions</h2>
             <textarea id="outputText" placeholder="Formatted text with timestamps will appear here..." readonly></textarea>
             <div class="info">
-                Format: revision_id:YYYY-MM-DDTHH:MM:SS.sss UTC
+                Converts revision IDs (r[hex]-[num]-[num]) to: revision_id:YYYY-MM-DDTHH:MM:SS.sss UTC<br>
+                Converts _modified timestamps: Long('1753807155') to Long('1753807155:2025-07-29T16:39:15.000')
             </div>
         </div>
     </div>
 
     <script>
+        function formatModifiedTimestamps(text) {
+            // Regex pattern to match _modified: Long('number')
+            const modifiedPattern = /_modified:\s*Long\('(\d+)'\)/g;
+            
+            return text.replace(modifiedPattern, function(match, epochSeconds) {
+                try {
+                    // Convert epoch seconds to milliseconds
+                    const milliseconds = parseInt(epochSeconds, 10) * 1000;
+                    
+                    // Create Date object and format as ISO 8601
+                    const date = new Date(milliseconds);
+                    const isoString = date.toISOString();
+                    
+                    // Format as YYYY-MM-DDTHH:MM:SS.sss (remove the Z)
+                    const formattedDate = isoString.replace('Z', '');
+                    
+                    // Return the original value with the timestamp appended
+                    return `_modified: Long('${epochSeconds}:${formattedDate}')`;
+                } catch (error) {
+                    // If conversion fails, return the original match
+                    return match;
+                }
+            });
+        }
+
         function formatRevisions() {
             const inputText = document.getElementById('inputText');
             const outputText = document.getElementById('outputText');
@@ -133,11 +170,13 @@
                 return;
             }
             
-            // Regex pattern to match revision IDs: r[hex]-[num]-[num]
+            // First, convert _modified timestamps
+            let result = formatModifiedTimestamps(input);
+            
+            // Then, convert revision IDs
             const revisionPattern = /r([0-9a-fA-F]+)-(\d+)-(\d+)/g;
             
-            // Replace all revision IDs with formatted versions
-            const result = input.replace(revisionPattern, function(match, hexPart, num1, num2) {
+            result = result.replace(revisionPattern, function(match, hexPart, num1, num2) {
                 try {
                     // Convert hex to decimal (milliseconds since epoch)
                     const milliseconds = parseInt(hexPart, 16);
@@ -169,11 +208,20 @@
             }
         });
 
-        // Allow Enter key to trigger conversion
+        // Allow Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to trigger conversion
         document.getElementById('inputText').addEventListener('keydown', function(event) {
-            if (event.ctrlKey && event.key === 'Enter') {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
                 formatRevisions();
             }
+        });
+    </script>
+    
+    <script src="js/select-all-support.js"></script>
+    <script>
+        // Initialize select all support when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add select all support to the formatted revisions output textarea
+            addSelectAllSupportToElements(['outputText']);
         });
     </script>
 </body>
