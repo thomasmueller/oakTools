@@ -58,6 +58,21 @@
             outline-offset: -2px;
             border-color: #007cba;
         }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+            cursor: text;
+        }
+        input[type="text"]:focus {
+            outline: 2px solid #007cba;
+            outline-offset: -2px;
+            border-color: #007cba;
+        }
         .info {
             color: #666;
             margin-top: 10px;
@@ -132,6 +147,25 @@ _modified: Long('1753807155')"></textarea>
             </div>
         </div>
     </div>
+    
+    <!-- MongoDB Query Generator -->
+    <div class="container" style="margin-top: 20px;">
+        <div class="column">
+            <h2>Path</h2>
+            <input type="text" id="pathInput" placeholder="/test/path" />
+            <div class="info">
+                Enter a JCR path to generate MongoDB query
+            </div>
+        </div>
+        
+        <div class="column right-column">
+            <h2>MongoDB Query</h2>
+            <input type="text" id="mongoOutput" placeholder="MongoDB query will appear here..." readonly />
+            <div class="info">
+                Generates: db.nodes.findOne({_id:'segments:/path'})
+            </div>
+        </div>
+    </div>
 
     <script>
         function formatModifiedTimestamps(text) {
@@ -199,6 +233,32 @@ _modified: Long('1753807155')"></textarea>
             outputText.value = result;
         }
 
+        function generateMongoQuery() {
+            const pathInput = document.getElementById('pathInput');
+            const mongoOutput = document.getElementById('mongoOutput');
+            
+            const path = pathInput.value.trim();
+            
+            if (path === '') {
+                mongoOutput.value = '';
+                return;
+            }
+            
+            // Ensure path starts with '/'
+            const normalizedPath = path.startsWith('/') ? path : '/' + path;
+            
+            // Split path into segments, removing empty segments
+            const segments = normalizedPath.split('/').filter(segment => segment.length > 0);
+            
+            // Count the number of segments
+            const segmentCount = segments.length;
+            
+            // Generate the MongoDB query
+            const mongoQuery = `db.nodes.findOne({_id:'${segmentCount}:${normalizedPath}'})`;
+            
+            mongoOutput.value = mongoQuery;
+        }
+
         // Auto-convert on input change
         document.getElementById('inputText').addEventListener('input', function() {
             if (this.value.trim() === '') {
@@ -214,14 +274,26 @@ _modified: Long('1753807155')"></textarea>
                 formatRevisions();
             }
         });
+
+        // Auto-generate MongoDB query on path input change
+        document.getElementById('pathInput').addEventListener('input', function() {
+            generateMongoQuery();
+        });
+
+        // Allow Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to trigger MongoDB query generation
+        document.getElementById('pathInput').addEventListener('keydown', function(event) {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                generateMongoQuery();
+            }
+        });
     </script>
     
     <script src="js/select-all-support.js"></script>
     <script>
         // Initialize select all support when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Add select all support to the formatted revisions output textarea
-            addSelectAllSupportToElements(['outputText']);
+            // Add select all support to the formatted revisions output textarea and MongoDB query output
+            addSelectAllSupportToElements(['outputText', 'mongoOutput']);
         });
     </script>
 </body>
