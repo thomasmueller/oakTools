@@ -118,10 +118,29 @@ function toggleDetailedPanels() {
 }
 
 /**
+ * Get URL parameter value by name
+ * @param {string} name - The name of the URL parameter
+ * @returns {string|null} The parameter value or null if not found
+ */
+function getURLParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+/**
  * Initialize event listeners when the DOM is loaded
  */
 function initializeIndexDefGenerator() {
-    // Parse on page load with default query
+    // Check for query URL parameter and populate the textarea if present
+    const queryParam = getURLParameter('query');
+    const sqlInput = document.getElementById('sqlInput');
+    
+    if (queryParam && sqlInput) {
+        // Decode URL-encoded query and set it in the textarea
+        sqlInput.value = decodeURIComponent(queryParam);
+    }
+    
+    // Parse on page load with default query (or URL parameter query)
     parseSQL2();
     
     // Add event listener for Generate Index button
@@ -137,7 +156,6 @@ function initializeIndexDefGenerator() {
     }
     
     // Allow Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux) to trigger parsing
-    const sqlInput = document.getElementById('sqlInput');
     if (sqlInput) {
         sqlInput.addEventListener('keydown', function(event) {
             if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
@@ -196,6 +214,7 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         parseSQL2,
         toggleDetailedPanels,
-        initializeIndexDefGenerator
+        initializeIndexDefGenerator,
+        getURLParameter
     };
 } 
