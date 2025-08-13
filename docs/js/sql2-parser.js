@@ -709,6 +709,7 @@ function convertASTToFilter(ast) {
         sortOrder: [],
         isFulltextSearchable: false,
         properties: new Set(),
+        facets: [],
         pathPrefix: null,
         pathGlob: null,
         indexTag: null
@@ -753,6 +754,23 @@ function convertASTToFilter(ast) {
         if (ast.columns) {
             ast.columns.forEach(column => {
                 if (column.type === 'Column' && column.expression) {
+                    // Detect facets expressed as bracketed property names like [rep:facet(path/to/prop)]
+                    if (column.expression.type === 'Property' && typeof column.expression.name === 'string') {
+                        const name = column.expression.name;
+                        const facetMatch = name.match(/^rep:facet\((.+)\)$/);
+                        if (facetMatch) {
+                            let facetProp = facetMatch[1].trim();
+                            // Normalize optional brackets inside the facet call
+                            if (facetProp.startsWith('[') && facetProp.endsWith(']')) {
+                                facetProp = facetProp.substring(1, facetProp.length - 1);
+                            }
+                            if (facetProp.length > 0 && !filter.facets.includes(facetProp)) {
+                                filter.facets.push(facetProp);
+                            }
+                            return; // Do not treat rep:facet(...) as a regular property
+                        }
+                    }
+
                     const propName = extractPropertyName(column.expression);
                     if (propName) {
                         filter.properties.add(propName);
@@ -1183,6 +1201,15 @@ function convertFilterToLuceneIndex(filter) {
         indexRoot.queryPaths = [filter.pathPrefix];
     }
 
+    // Add top-level facets section when filter contains facets
+    if (Array.isArray(filter.facets) && filter.facets.length > 0) {
+        indexRoot.facets = {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "topChildren": "100",
+            "secure": "insecure"
+        };
+    }
+
     // Create indexRules
     indexRoot.indexRules = {
         "jcr:primaryType": "nt:unstructured"
@@ -1284,6 +1311,19 @@ function convertFilterToLuceneIndex(filter) {
             }
         }
     });
+
+    // Add facet properties if present in filter
+    if (Array.isArray(filter.facets) && filter.facets.length > 0) {
+        filter.facets.forEach(facetPath => {
+            const facetKey = generatePropertyKey(facetPath, usedKeys);
+            properties[facetKey] = {
+                "jcr:primaryType": "nt:unstructured",
+                "name": facetPath,
+                "propertyIndex": true,
+                "facets": true
+            };
+        });
+    }
 
     // Note: nodeName property should only be added when explicitly needed by the query
     // (removed automatic nodeName addition as it's not always required)
@@ -1515,6 +1555,11 @@ function formatFilter(filter) {
     // Add fulltext search flag
     cleanFilter.isFulltextSearchable = filter.isFulltextSearchable;
     
+    // Add facets if present
+    if (filter.facets && filter.facets.length > 0) {
+        cleanFilter.facets = filter.facets;
+    }
+
     // Add index tag if present
     if (filter.indexTag) {
         cleanFilter.indexTag = filter.indexTag;

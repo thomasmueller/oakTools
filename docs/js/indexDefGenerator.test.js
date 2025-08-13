@@ -790,6 +790,7 @@ order by lower(a.[jcr:content/data/master/BRANCH_CODE])`;
         } ],
         "isFulltextSearchable": false,
         "properties": {},
+        "facets": [],
         "pathPrefix": "/content/dam/bot",
         "pathGlob": null,
         "indexTag": null
@@ -891,6 +892,48 @@ runner.test('Should generate correct index definition for function-based sorting
     this.assertEqual(properties["lower"]["name"], "str:lower([abc])", 'Should have correct function name');
     this.assertEqual(properties["lower"]["ordered"], true, 'Should be ordered for sorting');
     this.assertEqual(properties["lower"]["propertyIndex"], true, 'Should have propertyIndex');
+});
+
+runner.test('Should collect rep:facet() columns into filter.facets', function() {
+    // Arrange
+    const testSQL = `select \n[rep:facet(jcr:content/metadata/dc:format)], [rep:facet(jcr:content/metadata/dam:status)] \nfrom [dam:Asset]\nwhere isdescendantnode('/content/dam')`;
+
+    // Act
+    const lexer = new SQL2Lexer(testSQL);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    const filter = convertASTToFilter(ast);
+
+    // Assert
+    this.assertEqual(filter.nodeType, 'dam:Asset', 'nodeType should be dam:Asset');
+    this.assertEqual(filter.pathPrefix, '/content/dam', 'pathPrefix should be set from isdescendantnode');
+    this.assertEqual(filter.facets, [
+        'jcr:content/metadata/dc:format',
+        'jcr:content/metadata/dam:status'
+    ], 'facets array should contain extracted facet properties in order');
+
+    // Also verify formatting includes facets section
+    const formatted = require('./sql2-parser.js').formatFilter(filter);
+    this.assertContains(formatted, '"facets": [ "jcr:content/metadata/dc:format", "jcr:content/metadata/dam:status" ]', 'formatted filter should include facets');
+
+    // Verify index definition includes facet properties
+    const indexDef = convertFilterToLuceneIndex(filter);
+    const props = indexDef["/oak:index/damAssetLucene-12-custom-1"].indexRules["dam:Asset"].properties;
+    const root = indexDef["/oak:index/damAssetLucene-12-custom-1"];
+    this.assertEqual(props.hasOwnProperty('format'), true, 'facet key format should exist');
+    this.assertEqual(props['format'].facets, true, 'format should be marked as facets');
+    this.assertEqual(props['format'].name, 'jcr:content/metadata/dc:format', 'format should have correct name');
+    this.assertEqual(props.hasOwnProperty('status'), true, 'facet key status should exist');
+    this.assertEqual(props['status'].facets, true, 'status should be marked as facets');
+    this.assertEqual(props['status'].name, 'jcr:content/metadata/dam:status', 'status should have correct name');
+
+    // Verify top-level facets section exists and matches exactly
+    this.assertEqual(root.hasOwnProperty('facets'), true, 'top-level facets section should be present');
+    this.assertEqual(root.facets, {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "topChildren": "100",
+        "secure": "insecure"
+    }, 'top-level facets section should match expected content');
 });
 
 // Run the tests
