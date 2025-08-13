@@ -622,6 +622,13 @@ class SQL2Parser {
                         dataType: 'number',
                         value: value
                     };
+                } else if (this.match('STAR')) {
+                    // Support wildcard usage in function args like contains(*, 'text')
+                    this.advance();
+                    return {
+                        type: 'Star',
+                        value: '*'
+                    };
                 } else if (this.match('NULL')) {
                     this.advance();
                     return {
@@ -880,11 +887,15 @@ function extractConstraints(node, filter) {
                 case 'Function':
                     // Handle function constraints like CONTAINS and ISDESCENDANTNODE
                     if (node.name === 'contains' && node.arguments.length >= 2) {
-                        const containsProp = extractPropertyName(node.arguments[0]);
+                        const leftArg = node.arguments[0];
+                        const containsProp = extractPropertyName(leftArg);
                         const searchValue = extractLiteralValue(node.arguments[1]);
-                        if (containsProp && searchValue) {
+                        if (searchValue) {
+                            // Mark fulltext if contains is used; add property only when not wildcard
                             filter.isFulltextSearchable = true;
-                            filter.properties.add(containsProp);
+                            if (containsProp) {
+                                filter.properties.add(containsProp);
+                            }
                         }
                     } else if (node.name === 'isdescendantnode' && node.arguments.length >= 1) {
                         if (node.arguments.length === 1) {
@@ -1225,6 +1236,18 @@ function convertFilterToLuceneIndex(filter) {
     };
 
     const properties = indexRoot.indexRules[nodeType].properties;
+
+    // If fulltext search is used, include string properties and an allStrings catch-all
+    if (filter.isFulltextSearchable) {
+        indexRoot.indexRules[nodeType].includePropertyTypes = ["String"];
+        if (!properties.hasOwnProperty('allStrings')) {
+            properties.allStrings = {
+                "isRegex": true,
+                "name": ".*",
+                "nodeScopeIndex": true
+            };
+        }
+    }
 
     // Add property definitions based on filter restrictions only
     const allProperties = new Set();

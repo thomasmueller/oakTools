@@ -936,6 +936,76 @@ runner.test('Should collect rep:facet() columns into filter.facets', function() 
     }, 'top-level facets section should match expected content');
 });
 
+runner.test('Should support isdescendantnode([/path]) and contains(*, \"text\")', function() {
+    // Arrange
+    const testSQL = `select * from [nt:unstructured]\nwhere isdescendantnode([/tmp/test])\nand contains(*, 'hello')`;
+
+    // Act
+    const lexer = new SQL2Lexer(testSQL);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    const filter = convertASTToFilter(ast);
+
+    // Assert basic AST structure
+    this.assertEqual(ast.from.value, 'nt:unstructured', 'node type parsed');
+    this.assertEqual(filter.pathPrefix, '/tmp/test', 'pathPrefix from bracketed path literal');
+    this.assertEqual(filter.isFulltextSearchable, true, 'fulltext flag set when contains used');
+
+    // Verify index definition includes includePropertyTypes and allStrings
+    const indexDef = convertFilterToLuceneIndex(filter);
+    const root = indexDef["/oak:index/ntunstructuredLucene-12-custom-1"];
+    const rule = root.indexRules["nt:unstructured"];
+    this.assertEqual(rule.includePropertyTypes, ["String"], 'includePropertyTypes should be ["String"] when fulltext');
+    this.assertEqual(rule.properties.hasOwnProperty('allStrings'), true, 'allStrings property should exist');
+    this.assertEqual(rule.properties.allStrings, {
+        "isRegex": true,
+        "name": ".*",
+        "nodeScopeIndex": true
+    }, 'allStrings property should match expected structure');
+});
+
+runner.test('Should generate expected index definition for fulltext and path prefix', function() {
+    // Arrange
+    const testSQL = `select * from [nt:unstructured]\nwhere isdescendantnode([/tmp/test])\nand contains(*, 'hello')`;
+
+    const expectedIndexDef = {
+        "/oak:index/ntunstructuredLucene-12-custom-1": {
+            "jcr:primaryType": "oak:QueryIndexDefinition",
+            "type": "lucene",
+            "async": [ "async", "nrt" ],
+            "compatVersion": 2,
+            "evaluatePathRestrictions": true,
+            "includedPaths": [ "/tmp/test" ],
+            "queryPaths": [ "/tmp/test" ],
+            "indexRules": {
+                "jcr:primaryType": "nt:unstructured",
+                "nt:unstructured": {
+                    "jcr:primaryType": "nt:unstructured",
+                    "properties": {
+                        "jcr:primaryType": "nt:unstructured",
+                        "allStrings": {
+                            "isRegex": true,
+                            "name": ".*",
+                            "nodeScopeIndex": true
+                        }
+                    },
+                    "includePropertyTypes": [ "String" ]
+                }
+            }
+        }
+    };
+
+    // Act
+    const lexer = new SQL2Lexer(testSQL);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+    const filter = convertASTToFilter(ast);
+    const actualIndexDef = convertFilterToLuceneIndex(filter);
+
+    // Assert
+    this.assertEqual(actualIndexDef, expectedIndexDef, 'Index definition should match expected structure with fulltext and path prefix');
+});
+
 // Run the tests
 if (require.main === module) {
     runner.run().catch(console.error);
