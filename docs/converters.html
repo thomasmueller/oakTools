@@ -153,6 +153,10 @@
                     <input type="text" class="converter-input" id="urlEncodeInput" value="Hello World & Friends!" placeholder="Text to encode">
                 </div>
                 <div class="converter-row">
+                    <div class="converter-label">Hex Encoded:</div>
+                    <input type="text" class="converter-input" id="hexInput" value="48656c6c6f" placeholder="Hex encoded bytes">
+                </div>
+                <div class="converter-row">
                     <div class="converter-label">Celsius:</div>
                     <input type="number" class="converter-input" id="celsiusInput" value="20" placeholder="Temperature in Celsius">
                 </div>
@@ -188,6 +192,10 @@
                 <div class="converter-row">
                     <div class="converter-label">URL Encoded:</div>
                     <input type="text" class="converter-output editable" id="urlEncodeOutput" placeholder="e.g. Hello%20World">
+                </div>
+                <div class="converter-row">
+                    <div class="converter-label">Text:</div>
+                    <input type="text" class="converter-output editable" id="hexOutput" value="Hello" placeholder="UTF-8 text">
                 </div>
                 <div class="converter-row">
                     <div class="converter-label">Fahrenheit:</div>
@@ -545,6 +553,74 @@
             updating = false;
         }
 
+        // Convert hex to text (UTF-8)
+        function convertHex() {
+            if (updating) return;
+            updating = true;
+            
+            const input = document.getElementById('hexInput').value.trim();
+            const hexOutput = document.getElementById('hexOutput');
+            
+            if (input === '') {
+                hexOutput.value = '';
+                updating = false;
+                return;
+            }
+            
+            try {
+                // Remove any spaces or non-hex characters
+                const cleanHex = input.replace(/[^0-9a-fA-F]/g, '');
+                
+                // Ensure even number of characters
+                const paddedHex = cleanHex.length % 2 === 0 ? cleanHex : '0' + cleanHex;
+                
+                // Convert hex to bytes
+                const bytes = [];
+                for (let i = 0; i < paddedHex.length; i += 2) {
+                    bytes.push(parseInt(paddedHex.substr(i, 2), 16));
+                }
+                
+                // Convert bytes to UTF-8 text
+                const text = new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+                hexOutput.value = text;
+            } catch (error) {
+                hexOutput.value = '[Invalid hex]';
+            }
+            
+            updating = false;
+        }
+
+        // Convert text to hex (UTF-8) (reverse)
+        function convertHexReverse() {
+            if (updating) return;
+            updating = true;
+            
+            const input = document.getElementById('hexOutput').value;
+            const hexInput = document.getElementById('hexInput');
+            
+            if (input === '') {
+                hexInput.value = '';
+                updating = false;
+                return;
+            }
+            
+            try {
+                // Convert text to UTF-8 bytes
+                const bytes = new TextEncoder().encode(input);
+                
+                // Convert bytes to hex
+                const hex = Array.from(bytes)
+                    .map(byte => byte.toString(16).padStart(2, '0'))
+                    .join('');
+                
+                hexInput.value = hex;
+            } catch (error) {
+                hexInput.value = '[Error]';
+            }
+            
+            updating = false;
+        }
+
         // Convert Celsius to Fahrenheit
         function convertCelsius() {
             if (updating) return;
@@ -591,6 +667,7 @@
         document.getElementById('cronInput').addEventListener('input', convertCron);
         document.getElementById('decimalInput').addEventListener('input', convertDecimal);
         document.getElementById('urlEncodeInput').addEventListener('input', convertUrlEncode);
+        document.getElementById('hexInput').addEventListener('input', convertHex);
         document.getElementById('celsiusInput').addEventListener('input', convertCelsius);
 
         // Set up event listeners for reverse conversions (bidirectional)
@@ -598,6 +675,7 @@
         document.getElementById('secondsOutput').addEventListener('input', convertSecondsReverse);
         document.getElementById('decimalOutput').addEventListener('input', convertDecimalReverse);
         document.getElementById('urlEncodeOutput').addEventListener('input', convertUrlEncodeReverse);
+        document.getElementById('hexOutput').addEventListener('input', convertHexReverse);
         document.getElementById('celsiusOutput').addEventListener('input', convertCelsiusReverse);
 
         // Initialize with current timestamp and convert all default values
@@ -609,6 +687,7 @@
         convertCron();
         convertDecimal();
         convertUrlEncode();
+        convertHex();
         convertCelsius();
     </script>
 </body>
