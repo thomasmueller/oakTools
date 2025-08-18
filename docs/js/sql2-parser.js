@@ -95,8 +95,7 @@ class SQL2Lexer {
             'ISCHILDNODE': 'ISCHILDNODE',
             'OPTION': 'OPTION',
             'TAG': 'TAG',
-            'INDEX': 'INDEX',
-            'NAME': 'NAME'
+            'INDEX': 'INDEX'
         };
         
         return {
@@ -123,12 +122,10 @@ class SQL2Lexer {
     tokenize() {
         while (this.position < this.input.length) {
             const ch = this.peek();
-            
             if (this.isWhitespace(ch)) {
                 this.advance();
                 continue;
             }
-            
             if (ch === "'" || ch === '"') {
                 this.tokens.push(this.readString(ch));
             } else if (ch >= '0' && ch <= '9') {
@@ -182,7 +179,6 @@ class SQL2Lexer {
                 this.advance();
             }
         }
-        
         this.tokens.push({ type: 'EOF', value: null });
     }
 }
@@ -314,7 +310,6 @@ class SQL2Parser {
         // Check for AS alias
         if (this.match('AS')) {
             this.advance(); // consume 'AS'
-            
             if (this.match('IDENTIFIER')) {
                 const alias = this.advance().value;
                 selectorNode.alias = alias;
@@ -383,264 +378,264 @@ class SQL2Parser {
         return this.parseComparisonExpression();
     }
 
-                parseComparisonExpression() {
-                let left = this.parsePrimaryExpression();
+    parseComparisonExpression() {
+        let left = this.parsePrimaryExpression();
 
-                if (this.match('EQUALS', 'NOT_EQUALS', 'LT', 'LTE', 'GT', 'GTE')) {
-                    const operator = this.advance();
-                    const right = this.parsePrimaryExpression();
-                    return {
-                        type: 'BinaryOperation',
-                        operator: operator.value,
-                        left: left,
-                        right: right
-                    };
-                } else if (this.match('LIKE')) {
-                    this.advance();
-                    const right = this.parsePrimaryExpression();
-                    return {
-                        type: 'BinaryOperation',
-                        operator: 'LIKE',
-                        left: left,
-                        right: right
-                    };
-                } else if (this.match('IN')) {
-                    this.advance();
-                    this.consume('LPAREN');
-                    const values = [];
-                    
-                    if (!this.match('RPAREN')) {
-                        do {
-                            values.push(this.parseExpression());
-                            if (this.match('COMMA')) {
-                                this.advance();
-                            } else {
-                                break;
-                            }
-                        } while (!this.match('RPAREN'));
-                    }
-                    
-                    this.consume('RPAREN');
-                    return {
-                        type: 'InComparison',
-                        expression: left,
-                        values: values
-                    };
-                } else if (this.match('IS')) {
-                    this.advance();
-                    let notNull = false;
-                    if (this.match('NOT')) {
-                        notNull = true;
+        if (this.match('EQUALS', 'NOT_EQUALS', 'LT', 'LTE', 'GT', 'GTE')) {
+            const operator = this.advance();
+            const right = this.parsePrimaryExpression();
+            return {
+                type: 'BinaryOperation',
+                operator: operator.value,
+                left: left,
+                right: right
+            };
+        } else if (this.match('LIKE')) {
+            this.advance();
+            const right = this.parsePrimaryExpression();
+            return {
+                type: 'BinaryOperation',
+                operator: 'LIKE',
+                left: left,
+                right: right
+            };
+        } else if (this.match('IN')) {
+            this.advance();
+            this.consume('LPAREN');
+            const values = [];
+            
+            if (!this.match('RPAREN')) {
+                do {
+                    values.push(this.parseExpression());
+                    if (this.match('COMMA')) {
                         this.advance();
+                    } else {
+                        break;
                     }
-                    this.consume('NULL');
-                    return {
-                        type: 'IsNull',
-                        expression: left,
-                        not: notNull
-                    };
-                }
-
-                return left;
+                } while (!this.match('RPAREN'));
             }
+            
+            this.consume('RPAREN');
+            return {
+                type: 'InComparison',
+                expression: left,
+                values: values
+            };
+        } else if (this.match('IS')) {
+            this.advance();
+            let notNull = false;
+            if (this.match('NOT')) {
+                notNull = true;
+                this.advance();
+            }
+            this.consume('NULL');
+            return {
+                type: 'IsNull',
+                expression: left,
+                not: notNull
+            };
+        }
 
-                parsePrimaryExpression() {
-                if (this.match('LPAREN')) {
-                    this.advance();
-                    const expr = this.parseExpression();
-                    this.consume('RPAREN');
-                    return expr;
-                } else if (this.match('BRACKETED_NAME')) {
+        return left;
+    }
+
+    parsePrimaryExpression() {
+        if (this.match('LPAREN')) {
+            this.advance();
+            const expr = this.parseExpression();
+            this.consume('RPAREN');
+            return expr;
+        } else if (this.match('BRACKETED_NAME')) {
+            const property = this.advance().value;
+            return {
+                type: 'Property',
+                name: property
+            };
+        } else if (this.match('CAST')) {
+            this.advance();
+            this.consume('LPAREN');
+            const expression = this.parseExpression();
+            this.consume('AS');
+            const dataType = this.consume('IDENTIFIER').value;
+            this.consume('RPAREN');
+            return {
+                type: 'Cast',
+                expression: expression,
+                dataType: dataType
+            };
+        } else if (this.match('CONTAINS')) {
+            this.advance();
+            this.consume('LPAREN');
+            const args = [];
+            
+            if (!this.match('RPAREN')) {
+                do {
+                    args.push(this.parseExpression());
+                    if (this.match('COMMA')) {
+                        this.advance();
+                    } else {
+                        break;
+                    }
+                } while (!this.match('RPAREN'));
+            }
+            
+            this.consume('RPAREN');
+            return {
+                type: 'Function',
+                name: 'contains',
+                arguments: args
+            };
+        } else if (this.match('ISDESCENDANTNODE')) {
+            this.advance();
+            this.consume('LPAREN');
+            const args = [];
+            
+            if (!this.match('RPAREN')) {
+                do {
+                    args.push(this.parseExpression());
+                    if (this.match('COMMA')) {
+                        this.advance();
+                    } else {
+                        break;
+                    }
+                } while (!this.match('RPAREN'));
+            }
+            
+            this.consume('RPAREN');
+            return {
+                type: 'Function',
+                name: 'isdescendantnode',
+                arguments: args
+            };
+        } else if (this.match('ISSAMENODE')) {
+            this.advance();
+            this.consume('LPAREN');
+            const args = [];
+            
+            if (!this.match('RPAREN')) {
+                do {
+                    args.push(this.parseExpression());
+                    if (this.match('COMMA')) {
+                        this.advance();
+                    } else {
+                        break;
+                    }
+                } while (!this.match('RPAREN'));
+            }
+            
+            this.consume('RPAREN');
+            return {
+                type: 'Function',
+                name: 'issamenode',
+                arguments: args
+            };
+        } else if (this.match('ISCHILDNODE')) {
+            this.advance();
+            this.consume('LPAREN');
+            const args = [];
+            
+            if (!this.match('RPAREN')) {
+                do {
+                    args.push(this.parseExpression());
+                    if (this.match('COMMA')) {
+                        this.advance();
+                    } else {
+                        break;
+                    }
+                } while (!this.match('RPAREN'));
+            }
+            
+            this.consume('RPAREN');
+            return {
+                type: 'Function',
+                name: 'ischildnode',
+                arguments: args
+            };
+        } else if (this.match('IDENTIFIER')) {
+            const identifier = this.advance().value;
+            
+            if (this.match('LPAREN')) {
+                // Function call
+                this.advance(); // consume (
+                const args = [];
+                
+                if (!this.match('RPAREN')) {
+                    do {
+                        args.push(this.parseExpression());
+                        if (this.match('COMMA')) {
+                            this.advance();
+                        } else {
+                            break;
+                        }
+                    } while (!this.match('RPAREN'));
+                }
+                
+                this.consume('RPAREN');
+                
+                return {
+                    type: 'Function',
+                    name: identifier.toLowerCase(),
+                    arguments: args
+                };
+            } else if (this.match('DOT')) {
+                // Handle alias.property syntax (e.g., a.[jcr:content/metadata/status])
+                this.advance(); // consume DOT
+                
+                if (this.match('BRACKETED_NAME')) {
                     const property = this.advance().value;
                     return {
                         type: 'Property',
-                        name: property
-                    };
-                } else if (this.match('CAST')) {
-                    this.advance();
-                    this.consume('LPAREN');
-                    const expression = this.parseExpression();
-                    this.consume('AS');
-                    const dataType = this.consume('IDENTIFIER').value;
-                    this.consume('RPAREN');
-                    return {
-                        type: 'Cast',
-                        expression: expression,
-                        dataType: dataType
-                    };
-                } else if (this.match('CONTAINS')) {
-                    this.advance();
-                    this.consume('LPAREN');
-                    const args = [];
-                    
-                    if (!this.match('RPAREN')) {
-                        do {
-                            args.push(this.parseExpression());
-                            if (this.match('COMMA')) {
-                                this.advance();
-                            } else {
-                                break;
-                            }
-                        } while (!this.match('RPAREN'));
-                    }
-                    
-                    this.consume('RPAREN');
-                    return {
-                        type: 'Function',
-                        name: 'contains',
-                        arguments: args
-                    };
-                } else if (this.match('ISDESCENDANTNODE')) {
-                    this.advance();
-                    this.consume('LPAREN');
-                    const args = [];
-                    
-                    if (!this.match('RPAREN')) {
-                        do {
-                            args.push(this.parseExpression());
-                            if (this.match('COMMA')) {
-                                this.advance();
-                            } else {
-                                break;
-                            }
-                        } while (!this.match('RPAREN'));
-                    }
-                    
-                    this.consume('RPAREN');
-                    return {
-                        type: 'Function',
-                        name: 'isdescendantnode',
-                        arguments: args
-                    };
-                } else if (this.match('ISSAMENODE')) {
-                    this.advance();
-                    this.consume('LPAREN');
-                    const args = [];
-                    
-                    if (!this.match('RPAREN')) {
-                        do {
-                            args.push(this.parseExpression());
-                            if (this.match('COMMA')) {
-                                this.advance();
-                            } else {
-                                break;
-                            }
-                        } while (!this.match('RPAREN'));
-                    }
-                    
-                    this.consume('RPAREN');
-                    return {
-                        type: 'Function',
-                        name: 'issamenode',
-                        arguments: args
-                    };
-                } else if (this.match('ISCHILDNODE')) {
-                    this.advance();
-                    this.consume('LPAREN');
-                    const args = [];
-                    
-                    if (!this.match('RPAREN')) {
-                        do {
-                            args.push(this.parseExpression());
-                            if (this.match('COMMA')) {
-                                this.advance();
-                            } else {
-                                break;
-                            }
-                        } while (!this.match('RPAREN'));
-                    }
-                    
-                    this.consume('RPAREN');
-                    return {
-                        type: 'Function',
-                        name: 'ischildnode',
-                        arguments: args
-                    };
-                } else if (this.match('IDENTIFIER')) {
-                    const identifier = this.advance().value;
-                    
-                    if (this.match('LPAREN')) {
-                        // Function call
-                        this.advance(); // consume (
-                        const args = [];
-                        
-                        if (!this.match('RPAREN')) {
-                            do {
-                                args.push(this.parseExpression());
-                                if (this.match('COMMA')) {
-                                    this.advance();
-                                } else {
-                                    break;
-                                }
-                            } while (!this.match('RPAREN'));
-                        }
-                        
-                        this.consume('RPAREN');
-                        
-                        return {
-                            type: 'Function',
-                            name: identifier.toLowerCase(),
-                            arguments: args
-                        };
-                    } else if (this.match('DOT')) {
-                        // Handle alias.property syntax (e.g., a.[jcr:content/metadata/status])
-                        this.advance(); // consume DOT
-                        
-                        if (this.match('BRACKETED_NAME')) {
-                            const property = this.advance().value;
-                            return {
-                                type: 'Property',
-                                name: property,
-                                selector: identifier  // Include the alias/selector reference
-                            };
-                        } else if (this.match('STAR')) {
-                            const property = this.advance().value;
-                            return {
-                                type: 'Property',
-                                name: property,
-                                selector: identifier  // Include the alias/selector reference
-                            };
-                        } else {
-                            throw new Error(`Expected property name after ${identifier}.`);
-                        }
-                    } else {
-                        return {
-                            type: 'Identifier',
-                            name: identifier
-                        };
-                    }
-                } else if (this.match('STRING')) {
-                    const value = this.advance().value;
-                    return {
-                        type: 'Literal',
-                        dataType: 'string',
-                        value: value
-                    };
-                } else if (this.match('NUMBER')) {
-                    const value = this.advance().value;
-                    return {
-                        type: 'Literal',
-                        dataType: 'number',
-                        value: value
+                        name: property,
+                        selector: identifier  // Include the alias/selector reference
                     };
                 } else if (this.match('STAR')) {
-                    // Support wildcard usage in function args like contains(*, 'text')
-                    this.advance();
+                    const property = this.advance().value;
                     return {
-                        type: 'Star',
-                        value: '*'
+                        type: 'Property',
+                        name: property,
+                        selector: identifier  // Include the alias/selector reference
                     };
-                } else if (this.match('NULL')) {
-                    this.advance();
-                    return {
-                        type: 'Literal',
-                        dataType: 'null',
-                        value: null
-                    };
+                } else {
+                    throw new Error(`Expected property name after ${identifier}.`);
                 }
-
-                throw new Error(`Unexpected token: ${this.peek().type}`);
+            } else {
+                return {
+                    type: 'Identifier',
+                    name: identifier
+                };
             }
+        } else if (this.match('STRING')) {
+            const value = this.advance().value;
+            return {
+                type: 'Literal',
+                dataType: 'string',
+                value: value
+            };
+        } else if (this.match('NUMBER')) {
+            const value = this.advance().value;
+            return {
+                type: 'Literal',
+                dataType: 'number',
+                value: value
+            };
+        } else if (this.match('STAR')) {
+            // Support wildcard usage in function args like contains(*, 'text')
+            this.advance();
+            return {
+                type: 'Star',
+                value: '*'
+            };
+        } else if (this.match('NULL')) {
+            this.advance();
+            return {
+                type: 'Literal',
+                dataType: 'null',
+                value: null
+            };
+        }
+
+        throw new Error(`Unexpected token: ${this.peek().type}`);
+    }
 
     parseOrderByList() {
         const orderBy = [];
@@ -678,7 +673,7 @@ class SQL2Parser {
                 this.advance();
                 
                 // Check if this is "index name" and provide specific error message
-                if (this.match('NAME')) {
+                if (this.match('IDENTIFIER') && this.tokens[this.position].value.toLowerCase() === 'name') {
                     throw new Error('option(index name ...) is not officially supported. It is used for development only. Use index tags instead, using "option(index tag ...).');
                 }
                 
@@ -809,207 +804,215 @@ function convertASTToFilter(ast) {
 
 function extractConstraints(node, filter) {
     if (!node) return;
-
-                switch (node.type) {
-                case 'BinaryOperation':
-                    if (node.operator === 'AND' || node.operator === 'and') {
-                        extractConstraints(node.left, filter);
-                        extractConstraints(node.right, filter);
-                    } else if (node.operator === 'OR' || node.operator === 'or') {
-                        // OR constraints are more complex in Oak, simplified here
-                        extractConstraints(node.left, filter);
-                        extractConstraints(node.right, filter);
-                    } else {
-                        // Comparison operations
-                        const rightValue = extractLiteralValue(node.right);
-                        
-                        if (rightValue !== undefined) {
-                            // Check if left side is a function
-                            if (node.left.type === 'Function') {
-                                // Handle function-based comparisons like LOWER([prop]) = 'value'
-                                const functionCall = formatFunctionCall(node.left);
-                                const constraint = {
-                                    propertyName: functionCall,
-                                    operator: node.operator,
-                                    value: rightValue,
-                                    propertyType: typeof rightValue,
-                                    isFunction: true
-                                };
-                                                                 filter.propertyRestrictions.push(constraint);
-                                 // Note: Don't add function calls to properties set
-                                 // The inner property will be handled separately if needed
-                            } else {
-                                // Handle regular property comparisons
-                                const leftProp = extractPropertyName(node.left);
-                                if (leftProp) {
-                                    if (leftProp === 'jcr:path' && node.operator === 'LIKE') {
-                                        extractPathConstraint(rightValue, filter);
-                                    } else {
-                                        const constraint = {
-                                            propertyName: leftProp,
-                                            operator: node.operator,
-                                            value: rightValue,
-                                            propertyType: typeof rightValue
-                                        };
-                                        filter.propertyRestrictions.push(constraint);
-                                        filter.properties.add(leftProp);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    break;
-                    
-                case 'InComparison':
-                    const propName = extractPropertyName(node.expression);
-                    if (propName) {
-                        const values = node.values.map(v => extractLiteralValue(v)).filter(v => v !== undefined);
-                        if (values.length > 0) {
+    switch (node.type) {
+    case 'BinaryOperation':
+        if (node.operator === 'AND' || node.operator === 'and') {
+            extractConstraints(node.left, filter);
+            extractConstraints(node.right, filter);
+        } else if (node.operator === 'OR' || node.operator === 'or') {
+            // OR constraints are more complex in Oak, simplified here
+            extractConstraints(node.left, filter);
+            extractConstraints(node.right, filter);
+        } else {
+            // Comparison operations
+            const rightValue = extractLiteralValue(node.right);
+            
+            if (rightValue !== undefined) {
+                // Check if left side is a function
+                if (node.left.type === 'Function') {
+                    // Handle function-based comparisons like LOWER([prop]) = 'value'
+                    const functionCall = formatFunctionCall(node.left);
+                    const constraint = {
+                        propertyName: functionCall,
+                        operator: node.operator,
+                        value: rightValue,
+                        propertyType: typeof rightValue,
+                        isFunction: true
+                    };
+                    filter.propertyRestrictions.push(constraint);
+                    // Note: Don't add function calls to properties set
+                    // The inner property will be handled separately if needed
+                } else {
+                    // Handle regular property comparisons
+                    const leftProp = extractPropertyName(node.left);
+                    if (leftProp) {
+                        if (leftProp === 'jcr:path' && node.operator === 'LIKE') {
+                            extractPathConstraint(rightValue, filter);
+                        } else {
                             const constraint = {
-                                propertyName: propName,
-                                operator: 'IN',
-                                value: values,
-                                propertyType: 'array'
+                                propertyName: leftProp,
+                                operator: node.operator,
+                                value: rightValue,
+                                propertyType: typeof rightValue
                             };
                             filter.propertyRestrictions.push(constraint);
-                            filter.properties.add(propName);
+                            filter.properties.add(leftProp);
                         }
                     }
-                    break;
-                    
-                case 'IsNull':
-                    const nullPropName = extractPropertyName(node.expression);
-                    if (nullPropName) {
-                        const constraint = {
-                            propertyName: nullPropName,
-                            operator: node.not ? 'IS NOT NULL' : 'IS NULL',
-                            value: null,
-                            propertyType: 'null'
-                        };
-                        filter.propertyRestrictions.push(constraint);
-                        filter.properties.add(nullPropName);
-                    }
-                    break;
-                    
-                case 'Function':
-                    // Handle function constraints like CONTAINS and ISDESCENDANTNODE
-                    if (node.name === 'contains' && node.arguments.length >= 2) {
-                        const leftArg = node.arguments[0];
-                        const containsProp = extractPropertyName(leftArg);
-                        const searchValue = extractLiteralValue(node.arguments[1]);
-                        if (searchValue) {
-                            // Mark fulltext if contains is used; add property only when not wildcard
-                            filter.isFulltextSearchable = true;
-                            if (containsProp) {
-                                filter.properties.add(containsProp);
-                            }
-                        }
-                    } else if (node.name === 'isdescendantnode' && node.arguments.length >= 1) {
-                        if (node.arguments.length === 1) {
-                            // Single parameter: isdescendantnode('/content') or isdescendantnode([/content])
-                            const pathValue = extractPathValue(node.arguments[0]);
-                            if (pathValue) {
-                                // Same effect as [jcr:path] LIKE '/content/%'
-                                filter.pathPrefix = pathValue;
-                                filter.pathRestrictions.push({
-                                    type: 'PATH_PREFIX',
-                                    path: pathValue
-                                });
-                            }
-                        } else if (node.arguments.length >= 2) {
-                            // Two parameters: isdescendantnode(selector, '/content') or isdescendantnode(selector, [/content])
-                            let selectorValue = null;
-                            if (node.arguments[0].type === 'Identifier') {
-                                selectorValue = node.arguments[0].name;
-                            } else {
-                                selectorValue = extractPathValue(node.arguments[0]) || extractPropertyName(node.arguments[0]);
-                            }
-                            const pathValue = extractPathValue(node.arguments[1]);
-                            
-                            if (selectorValue && pathValue) {
-                                // Only apply path restriction if selector matches current filter selector
-                                if (selectorValue === filter.selector) {
-                                    // Same effect as [jcr:path] LIKE '/content/%'
-                                    filter.pathPrefix = pathValue;
-                                    filter.pathRestrictions.push({
-                                        type: 'PATH_PREFIX',
-                                        path: pathValue
-                                    });
-                                }
-                            }
-                        }
-                    } else if (node.name === 'issamenode' && node.arguments.length >= 1) {
-                        if (node.arguments.length === 1) {
-                            // Single parameter: issamenode('/content/dam/asset') or issamenode([/content/dam/asset])
-                            const pathValue = extractPathValue(node.arguments[0]);
-                            if (pathValue) {
-                                // Exact path match
-                                filter.pathRestrictions.push({
-                                    type: 'PATH_EXACT',
-                                    path: pathValue
-                                });
-                            }
-                        } else if (node.arguments.length >= 2) {
-                            // Two parameters: issamenode(selector, '/content/dam/asset')
-                            let selectorValue = null;
-                            if (node.arguments[0].type === 'Identifier') {
-                                selectorValue = node.arguments[0].name;
-                            } else {
-                                selectorValue = extractPathValue(node.arguments[0]) || extractPropertyName(node.arguments[0]);
-                            }
-                            const pathValue = extractPathValue(node.arguments[1]);
-                            
-                            if (selectorValue && pathValue) {
-                                // Only apply path restriction if selector matches current filter selector
-                                if (selectorValue === filter.selector) {
-                                    filter.pathRestrictions.push({
-                                        type: 'PATH_EXACT',
-                                        path: pathValue
-                                    });
-                                }
-                            }
-                        }
-                    } else if (node.name === 'ischildnode' && node.arguments.length >= 1) {
-                        if (node.arguments.length === 1) {
-                            // Single parameter: ischildnode('/content/dam') or ischildnode([/content/dam])
-                            const pathValue = extractPathValue(node.arguments[0]);
-                            if (pathValue) {
-                                // Direct child path match - similar to path prefix but only direct children
-                                filter.pathRestrictions.push({
-                                    type: 'PATH_GLOB',
-                                    path: pathValue + '/*'
-                                });
-                            }
-                        } else if (node.arguments.length >= 2) {
-                            // Two parameters: ischildnode(selector, '/content/dam')
-                            let selectorValue = null;
-                            if (node.arguments[0].type === 'Identifier') {
-                                selectorValue = node.arguments[0].name;
-                            } else {
-                                selectorValue = extractPathValue(node.arguments[0]) || extractPropertyName(node.arguments[0]);
-                            }
-                            const pathValue = extractPathValue(node.arguments[1]);
-                            
-                            if (selectorValue && pathValue) {
-                                // Only apply path restriction if selector matches current filter selector
-                                if (selectorValue === filter.selector) {
-                                    filter.pathRestrictions.push({
-                                        type: 'PATH_GLOB',
-                                        path: pathValue + '/*'
-                                    });
-                                }
-                            }
-                        }
-                    }
-                    break;
-                    
-                case 'UnaryOperation':
-                    if (node.operator === 'NOT') {
-                        // Handle NOT operations - simplified
-                        extractConstraints(node.expression, filter);
-                    }
-                    break;
+                }
             }
+        }
+        break;
+        
+    case 'InComparison':
+        const propName = extractPropertyName(node.expression);
+        if (propName) {
+            const values = node.values.map(v => extractLiteralValue(v)).filter(v => v !== undefined);
+            if (values.length > 0) {
+                const constraint = {
+                    propertyName: propName,
+                    operator: 'IN',
+                    value: values,
+                    propertyType: 'array'
+                };
+                filter.propertyRestrictions.push(constraint);
+                filter.properties.add(propName);
+            }
+        }
+        break;
+        
+    case 'IsNull':
+        const nullPropName = extractPropertyName(node.expression);
+        if (nullPropName) {
+            const constraint = {
+                propertyName: nullPropName,
+                operator: node.not ? 'IS NOT NULL' : 'IS NULL',
+                value: null,
+                propertyType: 'null'
+            };
+            filter.propertyRestrictions.push(constraint);
+            filter.properties.add(nullPropName);
+        }
+        break;
+        
+    case 'Function':
+        // Handle function constraints like CONTAINS and ISDESCENDANTNODE
+        if (node.name === 'contains' && node.arguments.length >= 2) {
+            const leftArg = node.arguments[0];
+            const containsProp = extractPropertyName(leftArg);
+            const searchValue = extractLiteralValue(node.arguments[1]);
+            if (searchValue) {
+                // Mark fulltext if contains is used
+                filter.isFulltextSearchable = true;
+                
+                // Create property restriction for contains function
+                if (containsProp) {
+                    const constraint = {
+                        propertyName: containsProp,
+                        operator: 'contains',
+                        value: searchValue,
+                        propertyType: typeof searchValue
+                    };
+                    filter.propertyRestrictions.push(constraint);
+                    filter.properties.add(containsProp);
+                }
+            }
+        } else if (node.name === 'isdescendantnode' && node.arguments.length >= 1) {
+            if (node.arguments.length === 1) {
+                // Single parameter: isdescendantnode('/content') or isdescendantnode([/content])
+                const pathValue = extractPathValue(node.arguments[0]);
+                if (pathValue) {
+                    // Same effect as [jcr:path] LIKE '/content/%'
+                    filter.pathPrefix = pathValue;
+                    filter.pathRestrictions.push({
+                        type: 'PATH_PREFIX',
+                        path: pathValue
+                    });
+                }
+            } else if (node.arguments.length >= 2) {
+                // Two parameters: isdescendantnode(selector, '/content') or isdescendantnode(selector, [/content])
+                let selectorValue = null;
+                if (node.arguments[0].type === 'Identifier') {
+                    selectorValue = node.arguments[0].name;
+                } else {
+                    selectorValue = extractPathValue(node.arguments[0]) || extractPropertyName(node.arguments[0]);
+                }
+                const pathValue = extractPathValue(node.arguments[1]);
+                
+                if (selectorValue && pathValue) {
+                    // Only apply path restriction if selector matches current filter selector
+                    if (selectorValue === filter.selector) {
+                        // Same effect as [jcr:path] LIKE '/content/%'
+                        filter.pathPrefix = pathValue;
+                        filter.pathRestrictions.push({
+                            type: 'PATH_PREFIX',
+                            path: pathValue
+                        });
+                    }
+                }
+            }
+        } else if (node.name === 'issamenode' && node.arguments.length >= 1) {
+            if (node.arguments.length === 1) {
+                // Single parameter: issamenode('/content/dam/asset') or issamenode([/content/dam/asset])
+                const pathValue = extractPathValue(node.arguments[0]);
+                if (pathValue) {
+                    // Exact path match
+                    filter.pathRestrictions.push({
+                        type: 'PATH_EXACT',
+                        path: pathValue
+                    });
+                }
+            } else if (node.arguments.length >= 2) {
+                // Two parameters: issamenode(selector, '/content/dam/asset')
+                let selectorValue = null;
+                if (node.arguments[0].type === 'Identifier') {
+                    selectorValue = node.arguments[0].name;
+                } else {
+                    selectorValue = extractPathValue(node.arguments[0]) || extractPropertyName(node.arguments[0]);
+                }
+                const pathValue = extractPathValue(node.arguments[1]);
+                
+                if (selectorValue && pathValue) {
+                    // Only apply path restriction if selector matches current filter selector
+                    if (selectorValue === filter.selector) {
+                        filter.pathRestrictions.push({
+                            type: 'PATH_EXACT',
+                            path: pathValue
+                        });
+                    }
+                }
+            }
+        } else if (node.name === 'ischildnode' && node.arguments.length >= 1) {
+            if (node.arguments.length === 1) {
+                // Single parameter: ischildnode('/content/dam') or ischildnode([/content/dam])
+                const pathValue = extractPathValue(node.arguments[0]);
+                if (pathValue) {
+                    // Direct child path match - similar to path prefix but only direct children
+                    filter.pathRestrictions.push({
+                        type: 'PATH_GLOB',
+                        path: pathValue + '/*'
+                    });
+                }
+            } else if (node.arguments.length >= 2) {
+                // Two parameters: ischildnode(selector, '/content/dam')
+                let selectorValue = null;
+                if (node.arguments[0].type === 'Identifier') {
+                    selectorValue = node.arguments[0].name;
+                } else {
+                    selectorValue = extractPathValue(node.arguments[0]) || extractPropertyName(node.arguments[0]);
+                }
+                const pathValue = extractPathValue(node.arguments[1]);
+                
+                if (selectorValue && pathValue) {
+                    // Only apply path restriction if selector matches current filter selector
+                    if (selectorValue === filter.selector) {
+                        filter.pathRestrictions.push({
+                            type: 'PATH_GLOB',
+                            path: pathValue + '/*'
+                        });
+                    }
+                }
+            }
+        }
+        break;
+        
+    case 'UnaryOperation':
+        if (node.operator === 'NOT') {
+            // Handle NOT operations - simplified
+            extractConstraints(node.expression, filter);
+        }
+        break;
+    }
 }
 
 function extractPathConstraint(pathPattern, filter) {
@@ -1430,13 +1433,13 @@ function createFunctionPropertyDefinition(restriction, filter) {
 
 function createPropertyDefinition(propertyName, filter) {
     const propDef = {
-        "jcr:primaryType": "nt:unstructured",
-        "propertyIndex": true
+        "jcr:primaryType": "nt:unstructured"
     };
 
     // Set property name (handle special properties)
     if (propertyName === ':nodeName') {
         propDef.name = ":nodeName";
+        propDef.propertyIndex = true;
         return propDef;
     } else {
         propDef.name = `str:${propertyName}`;
@@ -1444,6 +1447,14 @@ function createPropertyDefinition(propertyName, filter) {
 
     // Find restrictions for this property to determine type and features
     const restrictions = filter.propertyRestrictions.filter(r => r.propertyName === propertyName);
+    
+    // Check if this property has a contains operator - if so, use analyzed instead of propertyIndex
+    const hasContainsOperator = restrictions.some(r => r.operator === 'contains');
+    if (hasContainsOperator) {
+        propDef.analyzed = true;
+    } else {
+        propDef.propertyIndex = true;
+    }
     const sortRestrictions = filter.sortOrder.filter(s => s.property === propertyName);
 
     // Determine property type based on restrictions

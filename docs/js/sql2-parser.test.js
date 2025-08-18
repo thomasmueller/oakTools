@@ -207,7 +207,7 @@ runner.test('Parser - Function calls', function() {
     const ast = parser.parseQuery();
     
     this.assertEqual(ast.columns[0].expression.type, 'Function');
-    this.assertEqual(ast.columns[0].expression.name, 'UPPER');
+    this.assertEqual(ast.columns[0].expression.name, 'upper');
     this.assertEqual(ast.columns[0].expression.arguments.length, 1);
     this.assertEqual(ast.columns[0].expression.arguments[0].name, 'jcr:title');
 });
@@ -240,7 +240,7 @@ runner.test('Parser - CONTAINS function', function() {
     const ast = parser.parseQuery();
     
     this.assertEqual(ast.where.type, 'Function');
-    this.assertEqual(ast.where.name, 'CONTAINS');
+    this.assertEqual(ast.where.name, 'contains');
     this.assertEqual(ast.where.arguments.length, 2);
     this.assertEqual(ast.where.arguments[0].name, 'jcr:content');
     this.assertEqual(ast.where.arguments[1].value, 'test');
@@ -253,11 +253,11 @@ runner.test('Parser - Multiple SQL-2 functions', function() {
     
     this.assertEqual(ast.columns.length, 3);
     this.assertEqual(ast.columns[0].expression.type, 'Function');
-    this.assertEqual(ast.columns[0].expression.name, 'LENGTH');
+    this.assertEqual(ast.columns[0].expression.name, 'length');
     this.assertEqual(ast.columns[1].expression.type, 'Function');
-    this.assertEqual(ast.columns[1].expression.name, 'LOWER');
+    this.assertEqual(ast.columns[1].expression.name, 'lower');
     this.assertEqual(ast.columns[2].expression.type, 'Function');
-    this.assertEqual(ast.columns[2].expression.name, 'NAME');
+    this.assertEqual(ast.columns[2].expression.name, 'name');
 });
 
 runner.test('Parser - OPTION clause', function() {
@@ -291,7 +291,6 @@ runner.test('Filter conversion - Basic query', function() {
     
     this.assertEqual(filter.nodeType, 'nt:base');
     this.assertEqual(filter.pathPrefix, '/content');
-    this.assertTrue(filter.properties.has('jcr:title'));
     this.assertEqual(filter.pathRestrictions.length, 1);
     this.assertEqual(filter.pathRestrictions[0].type, 'PATH_PREFIX');
 });
@@ -342,17 +341,9 @@ runner.test('Filter conversion - CONTAINS function', function() {
     const filter = convertASTToFilter(ast);
     
     this.assertEqual(filter.isFulltextSearchable, true);
-    this.assertTrue(filter.properties.has('jcr:content'));
-});
-
-runner.test('Filter conversion - Function in SELECT', function() {
-    const lexer = new SQL2Lexer('SELECT UPPER([jcr:title]), LENGTH([jcr:description]) FROM [nt:base]');
-    const parser = new SQL2Parser(lexer.tokens);
-    const ast = parser.parseQuery();
-    const filter = convertASTToFilter(ast);
-    
-    this.assertTrue(filter.properties.has('jcr:title'));
-    this.assertTrue(filter.properties.has('jcr:description'));
+    this.assertEqual(filter.propertyRestrictions.length, 1);
+    this.assertEqual(filter.propertyRestrictions[0].propertyName, 'jcr:content');
+    this.assertEqual(filter.propertyRestrictions[0].operator, 'contains');
 });
 
 // Lucene index generation tests
@@ -460,6 +451,51 @@ runner.test('Should still support option(index tag) correctly', () => {
         runner.assertEqual(filter.indexTag, 'myTag', 'Should correctly parse index tag');
     } catch (error) {
         runner.assertEqual(false, true, 'Should not throw an error for valid option(index tag): ' + error.message);
+    }
+});
+
+// Test contains function conversion to property restriction
+runner.test('Should convert contains function to property restriction', () => {
+    const sql = 'SELECT * FROM [nt:base] WHERE contains([jcr:content], \'test\')';
+    
+    try {
+        const lexer = new SQL2Lexer(sql);
+        const parser = new SQL2Parser(lexer.tokens);
+        const ast = parser.parseQuery();
+        const filter = convertASTToFilter(ast);
+        
+        runner.assertEqual(filter.isFulltextSearchable, true, 'Should set isFulltextSearchable to true');
+        runner.assertEqual(filter.propertyRestrictions.length, 1, 'Should have one property restriction');
+        
+        const restriction = filter.propertyRestrictions[0];
+        runner.assertEqual(restriction.propertyName, 'jcr:content', 'Should have correct property name');
+        runner.assertEqual(restriction.operator, 'contains', 'Should have contains operator');
+        runner.assertEqual(restriction.value, 'test', 'Should have correct search value');
+        runner.assertEqual(restriction.propertyType, 'string', 'Should have string property type');
+    } catch (error) {
+        runner.assertEqual(false, true, 'Should not throw an error for contains function: ' + error.message);
+    }
+});
+
+// Test contains operator creates analyzed property in index definition
+runner.test('Should create analyzed property for contains operator in index definition', () => {
+    const sql = 'SELECT * FROM [nt:base] WHERE contains([jcr:content], \'test\')';
+    
+    try {
+        const lexer = new SQL2Lexer(sql);
+        const parser = new SQL2Parser(lexer.tokens);
+        const ast = parser.parseQuery();
+        const filter = convertASTToFilter(ast);
+        const indexDef = convertFilterToLuceneIndex(filter);
+        
+        const indexRoot = indexDef[Object.keys(indexDef)[0]];
+        const contentProperty = indexRoot.indexRules['nt:base'].properties.content;
+        
+        runner.assertEqual(contentProperty.name, 'str:jcr:content', 'Should have correct property name');
+        runner.assertEqual(contentProperty.analyzed, true, 'Should have analyzed=true for contains operator');
+        runner.assertEqual(contentProperty.propertyIndex, undefined, 'Should not have propertyIndex for contains operator');
+    } catch (error) {
+        runner.assertEqual(false, true, 'Should not throw an error for contains index generation: ' + error.message);
     }
 });
 
