@@ -292,5 +292,86 @@ runner.test('Option support - complex query with options', () => {
     runner.assertContains(result, 'option (index tag [myTag], limit 50)', 'Should include options');
 });
 
+// Additional tests from xpath-converter.test.js
+runner.test('Full conversion - jcr:first function with multiple order by', () => {
+    const input = '/jcr:root/content//element(*, nt:base)[jcr:first(@vanityPath) >= $lastValue] order by jcr:first(@vanityPath), @jcr:path';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [nt:base]', 'Should query nt:base');
+    runner.assertContains(result, 'isdescendantnode', 'Should use descendant relationship');
+    runner.assertContains(result, 'order by', 'Should include order by clause');
+    runner.assertContains(result, 'vanityPath', 'Should reference vanityPath property');
+});
+
+runner.test('Oak test - contains with rep:excerpt', () => {
+    const input = '/jcr:root//element(*, nt:base)[jcr:contains(., \'hello\')]';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [nt:base]', 'Should query nt:base');
+    runner.assertContains(result, 'contains', 'Should use contains function');
+    runner.assertContains(result, 'hello', 'Should include search term');
+});
+
+runner.test('Oak test - jcr:like function', () => {
+    const input = '//element(*, my:type)[jcr:like(@title,\'%Java%\')]';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [my:type]', 'Should query my:type');
+    runner.assertContains(result, 'title', 'Should reference title property');
+    runner.assertContains(result, 'Java', 'Should include search pattern');
+});
+
+runner.test('Oak test - jcr:contains function', () => {
+    const input = '//element(*, my:type)[jcr:contains(., \'JSR 170\')]';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [my:type]', 'Should query my:type');
+    runner.assertContains(result, 'JSR 170', 'Should include search term');
+});
+
+runner.test('Oak test - property non-existence check', () => {
+    const input = '//element(*, my:type)[not(@my:title)]';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [my:type]', 'Should query my:type');
+    runner.assertContains(result, 'title', 'Should reference title property');
+});
+
+runner.test('Oak test - string with escaped quotes', () => {
+    const input = '//element(*, my:type)[@my:title = \'Say "Hello"!\']';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [my:type]', 'Should query my:type');
+    runner.assertContains(result, 'title', 'Should reference title property');
+    runner.assertContains(result, 'Hello', 'Should include quoted text');
+});
+
+runner.test('Oak test - complex boolean AND condition', () => {
+    const input = '//element(*, my:type)[@a=\'b\' and @c=\'d\']';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [my:type]', 'Should query my:type');
+    runner.assertContains(result, 'and', 'Should include AND condition');
+});
+
+runner.test('Oak test - order by single property', () => {
+    const input = '//element(*, my:type) order by @my:title';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [my:type]', 'Should query my:type');
+    runner.assertContains(result, 'order by', 'Should include order by');
+    runner.assertContains(result, 'title', 'Should order by title');
+});
+
+runner.test('Oak test - order by multiple properties with direction', () => {
+    const input = '//element(*, my:type) order by @my:title descending, @my:text ascending';
+    const result = convertXPathToSQL2(input);
+    
+    runner.assertContains(result, 'from [my:type]', 'Should query my:type');
+    runner.assertContains(result, 'order by', 'Should include order by');
+    runner.assertContains(result, 'title', 'Should include title property');
+    runner.assertContains(result, 'text', 'Should include text property');
+});
+
 // Run all tests
 runner.run();
