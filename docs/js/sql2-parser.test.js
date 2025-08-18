@@ -432,6 +432,37 @@ runner.test('Complex query test', function() {
     this.assertTrue('nt:base' in index.indexRules);
 });
 
+// Test for custom error message when using option(index name)
+runner.test('Should show custom error message for option(index name)', () => {
+    const sql = 'select * from [nt:base] option(index name myIndex)';
+    
+    try {
+        const lexer = new SQL2Lexer(sql);
+        const parser = new SQL2Parser(lexer.tokens);
+        parser.parseQuery();
+        runner.assertEqual(false, true, 'Should have thrown an error');
+    } catch (error) {
+        const expectedMessage = 'option(index name ...) is not officially supported. It is used for development only. Use index tags instead, using "option(index tag ...).';
+        runner.assertEqual(error.message, expectedMessage, 'Should show correct error message for option(index name)');
+    }
+});
+
+// Test that option(index tag) still works
+runner.test('Should still support option(index tag) correctly', () => {
+    const sql = 'select * from [nt:base] option(index tag myTag)';
+    
+    try {
+        const lexer = new SQL2Lexer(sql);
+        const parser = new SQL2Parser(lexer.tokens);
+        const ast = parser.parseQuery();
+        const filter = convertASTToFilter(ast);
+        
+        runner.assertEqual(filter.indexTag, 'myTag', 'Should correctly parse index tag');
+    } catch (error) {
+        runner.assertEqual(false, true, 'Should not throw an error for valid option(index tag): ' + error.message);
+    }
+});
+
 // Run the tests
 if (typeof module !== 'undefined' && module.exports) {
     // Node.js environment

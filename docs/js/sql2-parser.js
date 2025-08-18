@@ -675,6 +675,12 @@ class SQL2Parser {
         do {
             if (this.match('INDEX')) {
                 this.advance();
+                
+                // Check if this is "index name" and provide specific error message
+                if (this.match('IDENTIFIER') && this.tokens[this.position].value === 'name') {
+                    throw new Error('option(index name ...) is not officially supported. It is used for development only. Use index tags instead, using "option(index tag ...).');
+                }
+                
                 this.consume('TAG');
                 
                 // Expect either a bracketed name or identifier for the tag
