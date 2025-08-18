@@ -95,7 +95,8 @@ class SQL2Lexer {
             'ISCHILDNODE': 'ISCHILDNODE',
             'OPTION': 'OPTION',
             'TAG': 'TAG',
-            'INDEX': 'INDEX'
+            'INDEX': 'INDEX',
+            'NAME': 'NAME'
         };
         
         return {
@@ -677,7 +678,7 @@ class SQL2Parser {
                 this.advance();
                 
                 // Check if this is "index name" and provide specific error message
-                if (this.match('IDENTIFIER') && this.tokens[this.position].value === 'name') {
+                if (this.match('NAME')) {
                     throw new Error('option(index name ...) is not officially supported. It is used for development only. Use index tags instead, using "option(index tag ...).');
                 }
                 
