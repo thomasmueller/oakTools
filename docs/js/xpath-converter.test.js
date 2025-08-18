@@ -461,5 +461,49 @@ runner.test('XPathParser - option parsing', () => {
     runner.assertEqual(result.options.indexTag, 'abc', 'Should extract index tag');
 });
 
+runner.test('Convert simple path with index tag option', () => {
+    const input = '/jcr:root/content/* option(index tag abc)';
+    const expected = `select a.[jcr:path], a.[jcr:score], a.*
+  from [nt:base] as a
+  where ischildnode(a, '/content')
+  option (index tag [abc])`;
+    
+    const result = convertXPathToSQL2(input);
+    runner.assertEqual(result.trim(), expected.trim(), 'Should convert path with option correctly');
+});
+
+runner.test('Convert with index name option', () => {
+    const input = '/jcr:root/content/* option(index name myIndex)';
+    const expected = `select a.[jcr:path], a.[jcr:score], a.*
+  from [nt:base] as a
+  where ischildnode(a, '/content')
+  option (index name [myIndex])`;
+    
+    const result = convertXPathToSQL2(input);
+    runner.assertEqual(result.trim(), expected.trim(), 'Should bracket index name values');
+});
+
+runner.test('Convert with limit option', () => {
+    const input = '/jcr:root/content/* option(limit 100)';
+    const expected = `select a.[jcr:path], a.[jcr:score], a.*
+  from [nt:base] as a
+  where ischildnode(a, '/content')
+  option (limit 100)`;
+    
+    const result = convertXPathToSQL2(input);
+    runner.assertEqual(result.trim(), expected.trim(), 'Should keep numeric limit without brackets');
+});
+
+runner.test('Convert with multiple options', () => {
+    const input = '/jcr:root/content/* option(index tag abc, limit 100, index name myIndex)';
+    const expected = `select a.[jcr:path], a.[jcr:score], a.*
+  from [nt:base] as a
+  where ischildnode(a, '/content')
+  option (index tag [abc], limit 100, index name [myIndex])`;
+    
+    const result = convertXPathToSQL2(input);
+    runner.assertEqual(result.trim(), expected.trim(), 'Should handle multiple options correctly');
+});
+
 // Run all tests
 runner.run(); 

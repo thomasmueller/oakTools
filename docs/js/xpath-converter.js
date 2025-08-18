@@ -520,14 +520,56 @@ class XPathParser {
     }
 
     parseOptionContent(content) {
-        const options = {};
+        const options = {
+            orderedOptions: [] // Preserve original order
+        };
         
-        // Handle "index tag [tagName]" or "index tag tagName"
-        const indexTagMatch = content.match(/index\s+tag\s+\[([^\]]+)\]/) || 
-                              content.match(/index\s+tag\s+([^\s,)]+)/);
+        // Split by commas to handle multiple options
+        const optionParts = content.split(',').map(part => part.trim());
         
-        if (indexTagMatch) {
-            options.indexTag = indexTagMatch[1];
+        for (const part of optionParts) {
+            // Handle "index tag [tagName]" or "index tag tagName"
+            const indexTagMatch = part.match(/index\s+tag\s+\[([^\]]+)\]/) || 
+                                  part.match(/index\s+tag\s+([^\s,)]+)/);
+            
+            if (indexTagMatch) {
+                options.indexTag = indexTagMatch[1];
+                options.orderedOptions.push({ type: 'indexTag', value: indexTagMatch[1] });
+                continue;
+            }
+            
+            // Handle "index name [name]" or "index name name"
+            const indexNameMatch = part.match(/index\s+name\s+\[([^\]]+)\]/) || 
+                                   part.match(/index\s+name\s+([^\s,)]+)/);
+            
+            if (indexNameMatch) {
+                options.indexName = indexNameMatch[1];
+                options.orderedOptions.push({ type: 'indexName', value: indexNameMatch[1] });
+                continue;
+            }
+            
+            // Handle "limit number"
+            const limitMatch = part.match(/limit\s+(\d+)/);
+            if (limitMatch) {
+                options.limit = parseInt(limitMatch[1]);
+                options.orderedOptions.push({ type: 'limit', value: parseInt(limitMatch[1]) });
+                continue;
+            }
+            
+            // Handle other numeric options like "offset number"
+            const offsetMatch = part.match(/offset\s+(\d+)/);
+            if (offsetMatch) {
+                options.offset = parseInt(offsetMatch[1]);
+                options.orderedOptions.push({ type: 'offset', value: parseInt(offsetMatch[1]) });
+                continue;
+            }
+            
+            // Handle other string options that need bracketing
+            const generalOptionMatch = part.match(/(\w+)\s+([^\s,)]+)/);
+            if (generalOptionMatch) {
+                const [, optionName, optionValue] = generalOptionMatch;
+                options.orderedOptions.push({ type: 'general', name: optionName, value: optionValue });
+            }
         }
         
         return options;
@@ -537,8 +579,17 @@ class XPathParser {
 function buildSQL2Query(result) {
     let sql2 = 'select ';
     
-    // SELECT clause
-    sql2 += result.select.join(', ');
+    // SELECT clause - add alias prefix to each select item
+    const selectItems = result.select.map(item => {
+        if (item === '*') {
+            return result.alias + '.*';
+        } else if (item.startsWith('[') && item.endsWith(']')) {
+            return result.alias + '.' + item;
+        } else {
+            return item; // Already has alias prefix or other format
+        }
+    });
+    sql2 += selectItems.join(', ');
     
     // FROM clause
     sql2 += '\n  from ' + result.from + ' as ' + result.alias;
@@ -589,8 +640,36 @@ function buildSQL2Query(result) {
     }
     
     // OPTION clause
-    if (result.options && result.options.indexTag) {
-        sql2 += '\n  option (index tag [' + result.options.indexTag + '])';
+    if (result.options && result.options.orderedOptions && result.options.orderedOptions.length > 0) {
+        const optionParts = [];
+        
+        for (const option of result.options.orderedOptions) {
+            switch (option.type) {
+                case 'indexTag':
+                    optionParts.push('index tag [' + option.value + ']');
+                    break;
+                case 'indexName':
+                    optionParts.push('index name [' + option.value + ']');
+                    break;
+                case 'limit':
+                case 'offset':
+                    optionParts.push(option.type + ' ' + option.value);
+                    break;
+                case 'general':
+                    // Check if the value is likely numeric
+                    if (/^\d+$/.test(option.value)) {
+                        optionParts.push(option.name + ' ' + option.value);
+                    } else {
+                        // Non-numeric values get brackets
+                        optionParts.push(option.name + ' [' + option.value + ']');
+                    }
+                    break;
+            }
+        }
+        
+        if (optionParts.length > 0) {
+            sql2 += '\n  option (' + optionParts.join(', ') + ')';
+        }
     }
     
     return sql2;

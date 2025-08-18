@@ -1172,7 +1172,34 @@ class Statement {
             }
         }
 
-        // options and comment would be added here
+        // Add options clause if present
+        if (this.queryOptions) {
+            const optionParts = [];
+            
+            if (this.queryOptions.traversal) {
+                optionParts.push('traversal ' + this.queryOptions.traversal);
+            }
+            if (this.queryOptions.indexName) {
+                optionParts.push('index name [' + this.queryOptions.indexName + ']');
+            }
+            if (this.queryOptions.indexTag) {
+                optionParts.push('index tag [' + this.queryOptions.indexTag + ']');
+            }
+            if (this.queryOptions.offset !== null && this.queryOptions.offset !== undefined) {
+                optionParts.push('offset ' + this.queryOptions.offset);
+            }
+            if (this.queryOptions.limit !== null && this.queryOptions.limit !== undefined) {
+                optionParts.push('limit ' + this.queryOptions.limit);
+            }
+            if (this.queryOptions.prefetchCount !== null && this.queryOptions.prefetchCount !== undefined) {
+                optionParts.push('prefetch ' + this.queryOptions.prefetchCount);
+            }
+            
+            if (optionParts.length > 0) {
+                buff += ' option (' + optionParts.join(', ') + ')';
+            }
+        }
+        
         return buff;
     }
 }
