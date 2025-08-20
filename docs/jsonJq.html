@@ -169,6 +169,14 @@
                 <textarea id="queryInput" style="height: 250px;"rows="10" placeholder="Enter JQ query (e.g., .people[0].name, .people[] | select(.age > 30))"></textarea>
                 <select id="exampleQueries">
                     <option value="">Select a common expression...</option>
+                    <option value="to_entries | map(select(.value.reindex == true) | .key)">Indexes with reindex set to true</option>
+                    <option value=
+'with_entries(
+select(
+    .value.type == "lucene"
+    and ((.value.async == "async") or
+    ((.value.async | type == "array") and (.value.async | index("async")))
+)))'>Indexes that are async and of type Lucene</option>
                     <option value=".people[0].name">.people[0].name - Get first person's name</option>
                     <option value=".people[].name">.people[].name - Get all names</option>
                     <option value=".people[] | select(.age > 30)">.people[] | select(.age > 30) - Filter by age > 30</option>
