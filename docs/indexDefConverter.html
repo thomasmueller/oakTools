@@ -131,8 +131,10 @@
         
         <div class="column right-column">
             <h2>XML</h2>
-            <div style="height: 46px; margin-bottom: 10px;"></div>
-            <textarea id="xmlInput" placeholder="XML output will appear here..." readonly></textarea>
+            <button onclick="convertToJSON()">Convert to JSON</button>
+            <textarea id="xmlInput" placeholder="Enter your XML here or convert from JSON..."></textarea>
+            <div id="xmlError" class="error"></div>
+            <div id="xmlSuccess" class="success"></div>
             <div class="info">JCR XML format with type annotations and namespaces</div>
         </div>
     </div>
@@ -295,6 +297,129 @@
             }
         }
 
+        function decodeAttributeName(name) {
+            // Reverse the encoding of special characters
+            return name.replace(/_x0040_/g, '@');
+        }
+
+        function parseXMLValue(value) {
+            // Handle typed values like {Boolean}true, {Long}123, {Double}123.45
+            const typeMatch = value.match(/^\{(Boolean|Long|Double)\}(.+)$/);
+            if (typeMatch) {
+                const [, type, val] = typeMatch;
+                switch (type) {
+                    case 'Boolean':
+                        return val === 'true';
+                    case 'Long':
+                        return parseInt(val, 10);
+                    case 'Double':
+                        return parseFloat(val);
+                }
+            }
+            
+            // Handle arrays like [item1,item2,item3]
+            if (value.startsWith('[') && value.endsWith(']')) {
+                const innerValue = value.slice(1, -1);
+                if (innerValue.trim() === '') return [];
+                return innerValue.split(',').map(item => item.trim());
+            }
+            
+            return value;
+        }
+
+        function xmlElementToJSON(element) {
+            const result = {};
+            
+            // Process attributes
+            if (element.attributes) {
+                Array.from(element.attributes).forEach(attr => {
+                    let attrName = decodeAttributeName(attr.name);
+                    
+                    // Add back leading colon for special attributes
+                    if (['version'].includes(attrName)) {
+                        attrName = ':' + attrName;
+                    }
+                    
+                    result[attrName] = parseXMLValue(attr.value);
+                });
+            }
+            
+            // Process child elements
+            Array.from(element.children).forEach(child => {
+                const childJSON = xmlElementToJSON(child);
+                let elementName = child.tagName;
+                
+                // Add back /oak:index/ prefix for top-level elements (except jcr:root)
+                if (element.tagName === 'jcr:root' && elementName !== 'jcr:root') {
+                    elementName = '/oak:index/' + elementName;
+                }
+                
+                result[elementName] = childJSON;
+            });
+            
+            return result;
+        }
+
+        function xmlToJSON(xmlString) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+            
+            // Check for parsing errors
+            const parseError = xmlDoc.getElementsByTagName('parsererror');
+            if (parseError.length > 0) {
+                throw new Error('Invalid XML: ' + parseError[0].textContent);
+            }
+            
+            const jcrRoot = xmlDoc.getElementsByTagName('jcr:root')[0];
+            if (!jcrRoot) {
+                throw new Error('No jcr:root element found in XML');
+            }
+            
+            // Convert the children of jcr:root (skip jcr:root attributes)
+            const result = {};
+            Array.from(jcrRoot.children).forEach(child => {
+                const childJSON = xmlElementToJSON(child);
+                let elementName = child.tagName;
+                
+                // Add back /oak:index/ prefix for top-level elements
+                elementName = '/oak:index/' + elementName;
+                
+                result[elementName] = childJSON;
+            });
+            
+            return result;
+        }
+
+        function convertToJSON() {
+            const xmlInput = document.getElementById('xmlInput');
+            const jsonInput = document.getElementById('jsonInput');
+            const xmlError = document.getElementById('xmlError');
+            const xmlSuccess = document.getElementById('xmlSuccess');
+            
+            xmlError.style.display = 'none';
+            xmlSuccess.style.display = 'none';
+            
+            try {
+                const xmlText = xmlInput.value.trim();
+                if (xmlText === '') {
+                    jsonInput.value = '';
+                    return;
+                }
+                
+                const jsonObj = xmlToJSON(xmlText);
+                const jsonResult = JSON.stringify(jsonObj, null, 2);
+                
+                jsonInput.value = jsonResult;
+                xmlSuccess.textContent = 'Successfully converted XML to JSON!';
+                xmlSuccess.style.display = 'block';
+                
+            } catch (error) {
+                jsonInput.value = '';
+                xmlError.textContent = 'Error: ' + error.message;
+                xmlError.style.display = 'block';
+            }
+        }
+
 
 
         // Clear XML output when JSON input is cleared
@@ -305,14 +430,23 @@
                 document.getElementById('jsonSuccess').style.display = 'none';
             }
         });
+
+        // Clear JSON output when XML input is cleared
+        document.getElementById('xmlInput').addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                document.getElementById('jsonInput').value = '';
+                document.getElementById('xmlError').style.display = 'none';
+                document.getElementById('xmlSuccess').style.display = 'none';
+            }
+        });
     </script>
     
     <script src="js/select-all-support.js"></script>
     <script>
         // Initialize select all support when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Add select all support to the XML output textarea
-            addSelectAllSupportToElements(['xmlInput']);
+            // Add select all support to both textareas
+            addSelectAllSupportToElements(['jsonInput', 'xmlInput']);
         });
     </script>
 </body>
