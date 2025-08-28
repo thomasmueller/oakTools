@@ -1358,8 +1358,18 @@ function convertFilterToLuceneIndex(filter) {
         });
     }
 
-    // Note: nodeName property should only be added when explicitly needed by the query
-    // (removed automatic nodeName addition as it's not always required)
+    // When there is no search condition (no restrictions, no sort, and not fulltext)
+    // add a property definition for jcr:primaryType so type-only queries can be served.
+    const hasAnyRestrictions = Array.isArray(filter.propertyRestrictions) && filter.propertyRestrictions.length > 0;
+    const hasSort = Array.isArray(filter.sortOrder) && filter.sortOrder.length > 0;
+    if (!hasAnyRestrictions && !hasSort && !filter.isFulltextSearchable) {
+        const primaryTypeKey = generatePropertyKey('jcr:primaryType', usedKeys);
+        properties[primaryTypeKey] = {
+            "jcr:primaryType": "nt:unstructured",
+            "name": "jcr:primaryType",
+            "propertyIndex": true
+        };
+    }
 
     return indexDef;
 }
@@ -1438,23 +1448,35 @@ function createPropertyDefinition(propertyName, filter) {
 
     // Set property name (handle special properties)
     if (propertyName === ':nodeName') {
-        propDef.name = ":nodeName";
+        // Ensure propertyIndex comes before name for deterministic ordering
         propDef.propertyIndex = true;
+        propDef.name = ":nodeName";
         return propDef;
-    } else {
-        propDef.name = `str:${propertyName}`;
+    }
+
+    // Early exit for jcr:path (handled via path restrictions)
+    if (propertyName === 'jcr:path') {
+        return null;
     }
 
     // Find restrictions for this property to determine type and features
     const restrictions = filter.propertyRestrictions.filter(r => r.propertyName === propertyName);
-    
+
     // Check if this property has a contains operator - if so, use analyzed instead of propertyIndex
     const hasContainsOperator = restrictions.some(r => r.operator === 'contains');
     if (hasContainsOperator) {
         propDef.analyzed = true;
     } else {
-        propDef.propertyIndex = true;
+        propDef.propertyIndex = true; // Intentionally before name to satisfy expected ordering
     }
+
+    // Set name immediately after deciding index/analyzed so it appears before 'ordered'
+    if (propertyName === 'jcr:uuid') {
+        propDef.name = "str:jcr:uuid";
+    } else {
+        propDef.name = `str:${propertyName}`;
+    }
+
     const sortRestrictions = filter.sortOrder.filter(s => s.property === propertyName);
 
     // Determine property type based on restrictions
@@ -1498,13 +1520,7 @@ function createPropertyDefinition(propertyName, filter) {
         propDef.ordered = true;
     }
 
-    // Special handling for common JCR properties
-    if (propertyName === 'jcr:uuid') {
-        propDef.name = "str:jcr:uuid";
-    } else if (propertyName === 'jcr:path') {
-        // Path is typically not indexed as a property, handled via path restrictions
-        return null;
-    }
+    // No further special handling needed here
 
     return propDef;
 }
