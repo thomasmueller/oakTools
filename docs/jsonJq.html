@@ -190,6 +190,10 @@ select(
                     <option value=".people | map(.name)">.people | map(.name) - Map to names only</option>
                     <option value=".people | group_by(.city)">.people | group_by(.city) - Group by city</option>
                 </select>
+                <div style="margin-top: 10px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                    <label style="font-weight: normal; cursor: pointer;"><input type="checkbox" id="streamMode"> Stream input (adds --stream)</label>
+                    <label style="font-weight: normal; cursor: pointer;"><input type="checkbox" id="compactOutput"> Compact output (adds -c)</label>
+                </div>
             </div>
         </div>
     </div>
@@ -254,6 +258,8 @@ select(
             const outputTextArea = document.getElementById('outputJSON');
             const errorDiv = document.getElementById('errorMessage');
             const successDiv = document.getElementById('successMessage');
+            const streamMode = document.getElementById('streamMode')?.checked;
+            const compactOutput = document.getElementById('compactOutput')?.checked;
             
             // Clear previous messages
             errorDiv.style.display = 'none';
@@ -269,24 +275,33 @@ select(
                     throw new Error('Please enter JSON data');
                 }
                 
-                // Parse the input JSON
-                let jsonData;
-                try {
-                    jsonData = JSON.parse(inputText);
-                } catch (parseError) {
-                    throw new Error('Invalid JSON: ' + parseError.message);
-                }
-                
-                // Execute the jq query
-                const result = jqProcessor.json(jsonData, query);
-                
-                // Format and display the result
-                if (result === null || result === undefined) {
-                    outputTextArea.value = 'null';
-                } else if (typeof result === 'string') {
-                    outputTextArea.value = JSON.stringify(result);
+                if (streamMode) {
+                    // Use jq --stream on the raw input text; avoid JSON.parse for large inputs
+                    const flags = [];
+                    if (compactOutput) flags.push('-c');
+                    flags.push('--stream');
+                    const stdout = jqProcessor.raw(inputText, query, flags);
+                    outputTextArea.value = stdout;
                 } else {
-                    outputTextArea.value = JSON.stringify(result, null, 2);
+                    // Non-streaming: parse JSON and use the object API
+                    let jsonData;
+                    try {
+                        jsonData = JSON.parse(inputText);
+                    } catch (parseError) {
+                        throw new Error('Invalid JSON: ' + parseError.message);
+                    }
+
+                    const result = jqProcessor.json(jsonData, query);
+
+                    if (compactOutput) {
+                        outputTextArea.value = JSON.stringify(result);
+                    } else if (result === null || result === undefined) {
+                        outputTextArea.value = 'null';
+                    } else if (typeof result === 'string') {
+                        outputTextArea.value = JSON.stringify(result);
+                    } else {
+                        outputTextArea.value = JSON.stringify(result, null, 2);
+                    }
                 }
                 
                 successDiv.textContent = 'Query executed successfully';
@@ -305,6 +320,14 @@ select(
         });
         
         document.getElementById('inputJSON').addEventListener('input', function() {
+            processJSON();
+        });
+        
+        // React to streaming/compact toggle changes
+        document.getElementById('streamMode').addEventListener('change', function() {
+            processJSON();
+        });
+        document.getElementById('compactOutput').addEventListener('change', function() {
             processJSON();
         });
         
