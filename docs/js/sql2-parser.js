@@ -690,8 +690,33 @@ class SQL2Parser {
                 }
                 
                 options.indexTag = tagValue;
+            } else if (this.match('IDENTIFIER') && this.peek().value && this.peek().value.toLowerCase() === 'traversal') {
+                // traversal OPTION
+                this.advance(); // consume 'traversal'
+                if (this.match('IDENTIFIER')) {
+                    options.traversal = this.advance().value.toUpperCase();
+                } else {
+                    throw new Error('Expected traversal level after TRAVERSAL');
+                }
+            } else if (this.match('IDENTIFIER') && this.peek().value && this.peek().value.toLowerCase() === 'offset') {
+                this.advance(); // consume 'offset'
+                if (this.match('NUMBER')) {
+                    options.offset = this.advance().value;
+                } else {
+                    throw new Error('Expected number after OFFSET');
+                }
+            } else if (this.match('IDENTIFIER') && this.peek().value && this.peek().value.toLowerCase() === 'limit') {
+                this.advance(); // consume 'limit'
+                if (this.match('NUMBER')) {
+                    options.limit = this.advance().value;
+                } else {
+                    throw new Error('Expected number after LIMIT');
+                }
             } else {
-                // Skip unknown options for now
+                // Skip unknown options for now, but don't consume closing paren
+                if (this.match('RPAREN')) {
+                    break;
+                }
                 this.advance();
             }
             

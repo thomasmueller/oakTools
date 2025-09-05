@@ -271,6 +271,27 @@ runner.test('Parser - OPTION clause', function() {
     this.assertEqual(ast.options.indexTag, 'myTag');
 });
 
+runner.test('Parser - OPTION clause with traversal, offset, limit', function() {
+    const sql = "select * from [nt:base] option(traversal FAIL, offset 100, limit 50)";
+    const lexer = new SQL2Lexer(sql);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+
+    this.assertEqual(ast.options.traversal, 'FAIL');
+    this.assertEqual(ast.options.offset, 100);
+    this.assertEqual(ast.options.limit, 50);
+});
+
+runner.test('Parser - OPTION clause with multiple options and index tag', function() {
+    const sql = "select * from [nt:base] option(index tag [abc], limit 100)";
+    const lexer = new SQL2Lexer(sql);
+    const parser = new SQL2Parser(lexer.tokens);
+    const ast = parser.parseQuery();
+
+    this.assertEqual(ast.options.indexTag, 'abc');
+    this.assertEqual(ast.options.limit, 100);
+});
+
 runner.test('Parser - OPTION clause with identifier tag', function() {
     const sql = "SELECT * FROM [nt:base] WHERE [name] = 'test' OPTION (index tag myTag)";
     const lexer = new SQL2Lexer(sql);
