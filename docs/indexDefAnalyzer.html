@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyze Index Definitions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: black;
+            cursor: pointer;
+            padding: 8px;
+            margin-right: 15px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .text-panels {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .text-panel {
+            flex: 1;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .text-panel h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .note {
+            font-size: 12px;
+            color: #555;
+            margin-top: 8px;
+        }
+        .actions {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0 20px 0;
+        }
+        .button {
+            padding: 10px 20px;
+            background-color: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #005a87;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+        @media (max-width: 700px) {
+            .text-panels { flex-direction: column; }
+            textarea { height: 220px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">&lt;</a>
+        <h1>Analyze Index Definitions</h1>
+    </div>
+
+    <div class="container">
+        <div class="actions">
+            <button class="button" onclick="analyze()">Analyze</button>
+        </div>
+        <div class="text-panels">
+            <div class="text-panel">
+                <h2>Index Definitions (JSON)</h2>
+                <textarea id="inputJSON" placeholder="Paste index definitions JSON here..."></textarea>
+                <div class="note">Only direct children with keys containing "-custom-" or a dot will be processed. Output includes each key and its includedPaths (if any). If none exist, includedPath will be set to "/". If multiple indexes share the same prefix (text before the first "-"), only the latest is kept.</div>
+                <div class="note">Example:</div>
+                <textarea id="exampleJSON" readonly>{
+  "/oak:index/acPrincipalName": {
+    "reindex": false
+  },
+  "/oak:index/acme.cqPageLucene-custom-1": {
+    "seed": -6195042258826211745
+  },
+  "/oak:index/acme.ntHierarchyLucene-custom-1": {
+    "includedPaths": ["/apps", "/conf", "/content", "/etc", "/home", "/var"]
+  },
+  "/oak:index/aceDestinationFragments-custom-1": {
+    "includedPaths": ["/content/dam"]
+  }
+}</textarea>
+            </div>
+            <div class="text-panel">
+                <h2>Summary</h2>
+                <textarea id="outputJSON" readonly placeholder="Summary will appear here..."></textarea>
+                <div id="errorMessage" class="error"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function isPlainObject(value) {
+            return value !== null && typeof value === 'object' && !Array.isArray(value);
+        }
+
+        function isEmptyObject(obj) {
+            return obj && typeof obj === 'object' && Object.keys(obj).length === 0;
+        }
+
+        function cleanupAndConvertToLucene(level, v) {
+            if (v instanceof String) {
+                if (v.startsWith('str:') || v.startsWith('dat:')) {
+                    return v.substring(4);
+                }
+            }
+            const allKeys = new Set(Object.keys(isPlainObject(v) ? v : {}));
+            for (const key of allKeys) {
+                if (key === 'jcr:uuid' || key === 'jcr:primaryType') {
+                    delete v[key];
+                }     
+                if (level === 0) {
+                    if (key.startsWith(':') 
+                        || key === 'seed' 
+                        || key === 'merges' 
+                        || key === 'reindexCount' 
+                        || key === 'refresh' 
+                        || key === 'originalType' 
+                        || key === 'reindex') {
+                        delete v[key];
+                        continue;
+                    }
+                }
+                if (key.endsWith('@lucene')) {
+                    k2 = key.replace('@lucene', '');
+                    v[k2] = v[key];
+                    delete v[key];
+                    continue;
+                }
+                v[key] = cleanupAndConvertToLucene(level + 1, v[key])
+            }
+            return v;
+        }
+
+        // Deep diff between base and current objects, producing hierarchical added/removed/changed
+        function deepDiff(level, base, current, type) {
+            let result = {};
+
+            const baseKeys = new Set(Object.keys(isPlainObject(base) ? base : {}));
+            const currKeys = new Set(Object.keys(isPlainObject(current) ? current : {}));
+            const allKeys = new Set([...baseKeys, ...currKeys]);
+
+            for (const key of allKeys) {
+                const inBase = baseKeys.has(key);
+                const inCurr = currKeys.has(key);
+                const baseVal = inBase ? base[key] : undefined;
+                const currVal = inCurr ? current[key] : undefined;
+
+                if (!inBase && inCurr && type === 'added') {
+                    result[key] = currVal;
+                    continue;
+                }
+                if (inBase && !inCurr && type === 'removed') {
+                    // Keys only for removed
+                    result[key] = {};
+                    continue;
+                }
+
+                // Both present
+                if (isPlainObject(baseVal) && isPlainObject(currVal)) {
+                    const sub = deepDiff(level + 1, baseVal, currVal, type);
+                    if (Object.keys(sub).length > 0) {
+                        result[key] = sub;
+                    }
+                }
+                if (type === 'changed') {
+                    const equal = Array.isArray(baseVal) && Array.isArray(currVal)
+                        ? JSON.stringify(baseVal) === JSON.stringify(currVal)
+                        : baseVal === currVal;
+                    if (!equal) {
+                        // Keys only for changed
+                        result[key] = true;
+                    }
+                }
+            }
+            if (isEmptyObject(result)) return {};
+            return result;
+        }
+
+        function analyze() {
+            const inputEl = document.getElementById('inputJSON');
+            const outputEl = document.getElementById('outputJSON');
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
+
+            let dataText = inputEl.value.trim();
+            if (!dataText) {
+                // If empty, copy example into input then continue
+                dataText = document.getElementById('exampleJSON').value;
+                inputEl.value = dataText;
+            }
+
+            let obj;
+            try {
+                obj = JSON.parse(dataText);
+            } catch (e) {
+                errorEl.textContent = 'Invalid JSON: ' + e.message;
+                errorEl.style.display = 'block';
+                outputEl.value = '';
+                return;
+            }
+
+            // Cleanup and Convert To Lucene
+            for (k of Object.keys(obj)) {
+                obj[k] = cleanupAndConvertToLucene(0, obj[k])
+            }
+
+            // Only process direct children keys that include '-custom-' and contain a dot
+            const keys = Object.keys(obj).filter(k => {
+                const isDirectChild = k.startsWith('/oak:index/');
+                const hasCustom = k.includes('-custom-');
+                const hasDot = k.includes('.');
+                return isDirectChild && (hasCustom || hasDot);
+            });
+
+            // Build result entries (normalize includedPaths to an array)
+            const entries = keys.map(k => {
+                const def = obj[k] || {};
+                let paths;
+                if (Array.isArray(def.includedPaths)) {
+                    paths = def.includedPaths;
+                } else if (typeof def.includedPaths === 'string') {
+                    paths = [def.includedPaths];
+                } else {
+                    // When no includedPaths, set includedPaths to "/"
+                    paths = ["/"];
+                }
+                const value = { includedPaths: paths };
+                return [k, value];
+            });
+
+            // Filter out entries that have root or libs/apps paths
+            const filtered = entries.filter(([k, v]) => {
+                const paths = Array.isArray(v.includedPaths) ? v.includedPaths : [];
+                const hasRoot = paths.includes("/");
+                const hasApp = paths.includes("/apps");
+                const hasLibs = paths.includes("/libs");
+                const hasAppsPrefix = paths.some(p => typeof p === 'string' && p.startsWith('/apps/'));
+                const hasLibsPrefix = paths.some(p => typeof p === 'string' && p.startsWith('/libs/'));
+                return !(hasRoot || hasApp || hasLibs || hasAppsPrefix || hasLibsPrefix);
+            });
+
+            // Natural sort (numeric-aware) by key
+            const naturalCompare = (a, b) => a[0].localeCompare(b[0], undefined, { numeric: true, sensitivity: 'base' });
+            filtered.sort(naturalCompare);
+
+            // Keep only latest per prefix (prefix = part before first '-')
+            const prefixToEntry = new Map();
+            for (const entry of filtered) {
+                const key = entry[0];
+                const dashIndex = key.indexOf('-');
+                const prefix = dashIndex === -1 ? key : key.substring(0, dashIndex);
+                // Sorted ascending, so later entries overwrite earlier ones to keep the latest
+                prefixToEntry.set(prefix, entry);
+            }
+
+            // Collect selected entries and sort again for stable output
+            const selected = Array.from(prefixToEntry.values());
+            selected.sort(naturalCompare);
+
+            // For each selected key, if a base version exists in the source JSON,
+            // attach it as `baseVersion` to the entry value.
+            for (const [k, v] of selected) {
+                const match = k.match(/^(.*)-custom-\d+$/);
+                if (match) {
+                    const baseKey = match[1];
+                    if (Object.prototype.hasOwnProperty.call(obj, baseKey)) {
+                        v.baseVersion = baseKey;
+                    }
+                }
+            }
+
+            // For each selected entry, attach baseVersion if present
+            for (const [k, v] of selected) {
+                const match = k.match(/^(.*)-custom-\d+$/);
+                if (match) {
+                    const baseKey = match[1];
+                    if (Object.prototype.hasOwnProperty.call(obj, baseKey)) {
+                        v.baseVersion = baseKey;
+                    }
+                }
+            }
+
+            // Compute diffs against base where applicable
+            for (const [k, v] of selected) {
+                if (v.baseVersion && Object.prototype.hasOwnProperty.call(obj, v.baseVersion)) {
+                    const baseObj = obj[v.baseVersion];
+                    const currObj = obj[k];
+                    let diff = deepDiff(0, baseObj, currObj, 'added');
+                    if (!isEmptyObject(diff)) {
+                        v.indexRules = diff.indexRules;
+                    }
+                    /*
+                    diff = deepDiff(0, baseObj, currObj, 'removed');
+                    if (!isEmptyObject(diff)) {
+                        v.removed = diff;
+                    }
+                    if (!isEmptyObject(diff)) v.removed = diff;
+                    diff = deepDiff(0, baseObj, currObj, 'changed');
+                    if (!isEmptyObject(diff)) v.changed = diff; 
+                    */
+                   delete v.baseVersion;
+                }
+                delete v.includedPaths;
+            }
+
+            // Assemble into object
+            const result = {};
+            for (const [k, v] of selected) {
+                result[k] = v;
+            }
+            for (const [k, v] of selected) {
+                if (Object.keys(v).length === 0) {
+                    delete result[k];
+                } else {
+                    k2 = k.substring(0, k.indexOf('-'));
+                    k2 = k2.replace('/oak:index/', '');
+                    result[k2] = v;
+                    delete result[k];
+                }
+            }
+
+            outputEl.value = JSON.stringify(result, null, 2);
+        }
+
+        // Auto-fill the example into input on first load for convenience
+        window.addEventListener('DOMContentLoaded', function() {
+            const example = document.getElementById('exampleJSON').value;
+            document.getElementById('inputJSON').placeholder = 'Paste index definitions JSON here...';
+        });
+    </script>
+</body>
+</html>
+
+

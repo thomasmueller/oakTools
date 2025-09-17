@@ -97,9 +97,11 @@
     <div class="container">
         <div class="panel">
             <p>
+Note: this feature is currently in Beta mode.
+</p><p>
 Simplified Index Management for AEM as a Cloud Service 
 allows to customize indexes by specifying just the differences
-(called "diff") to the out-of-the-box indexes.
+(called "diff.index") to the out-of-the-box (OOTB) indexes.
 </p><p>
 There is no need to copy definitions, or to explicitly define versions.
 When deploying the diff, the changes are automatically merged
@@ -109,8 +111,22 @@ is automatically created.
 These indexes have a property "mergeInfo" 
 that contains a link to this documentation.
 </p><p>
-See also: <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/operations/indexing" target="_blank">Content Search and Indexing</a>.
+For more information about indexing, see: <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/operations/indexing" target="_blank">Content Search and Indexing</a>.
+</p><p>
+A "diff.index" is a special node under /oak:index named /oak:index/diff.index 
+that carries a JSON "diff" describing additions to existing OOTB index definitions.
+The diff content is stored as a JSON file under diff.json/jcr:content/jcr:data,
+and maps index names to partial fragments. 
+Fragments only contain the properties you want to add to the index.
+During pipeline run, if needed a new version of an index 
+(e.g., damAssetLucene-12-custom-4) is created by applying the additions
+on top of the latest product index (e.g., damAssetLucene-12).
+Existing fields and property values in the OOTB index are preserved;
+only new properties are added.
 </p>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="indexDefAnalyzer.html" style="color: #007cba; text-decoration: none;">Analyze Index Definitions</a>
         </div>
     </div>
 
