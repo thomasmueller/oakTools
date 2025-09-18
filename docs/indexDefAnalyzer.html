@@ -115,7 +115,12 @@
             <div class="text-panel">
                 <h2>Index Definitions (JSON)</h2>
                 <textarea id="inputJSON" placeholder="Paste index definitions JSON here..."></textarea>
-                <div class="note">Only direct children with keys containing "-custom-" or a dot will be processed. Output includes each key and its includedPaths (if any). If none exist, includedPath will be set to "/". If multiple indexes share the same prefix (text before the first "-"), only the latest is kept.</div>
+                <div class="note">
+                    Only direct children with keys containing "-custom-" or a dot will be processed. 
+                    Output includes each key and its includedPaths (if any). 
+                    If none exist, includedPath will be set to "/". 
+                    If multiple indexes share the same prefix (text before the first "-"), 
+                    only the latest is kept.</div>
                 <div class="note">Example:</div>
                 <textarea id="exampleJSON" readonly>{
   "/oak:index/acPrincipalName": {
@@ -150,13 +155,15 @@
         }
 
         function cleanupAndConvertToLucene(level, v) {
-            if (v instanceof String) {
-                if (v.startsWith('str:') || v.startsWith('dat:')) {
-                    return v.substring(4);
-                }
-            }
             const allKeys = new Set(Object.keys(isPlainObject(v) ? v : {}));
             for (const key of allKeys) {
+                let value = v[key];
+                if (typeof value === "string") {
+                    if (value.startsWith('str:') || value.startsWith('dat:')) {
+                        value = value.substring(4);
+                        v[key] = value;
+                    }
+                }
                 if (key === 'jcr:uuid' || key === 'jcr:primaryType') {
                     delete v[key];
                 }     
@@ -254,7 +261,18 @@
 
             // Cleanup and Convert To Lucene
             for (k of Object.keys(obj)) {
-                obj[k] = cleanupAndConvertToLucene(0, obj[k])
+                let value = obj[k];
+                value = cleanupAndConvertToLucene(0, value);
+                if (value.includedPaths != undefined && (value.includedPaths === "/dummy" || 
+                    (value.includedPaths.length === 1 && value.includedPaths[0] === "/dummy"))) {
+                    delete obj[k];
+                    continue;
+                }
+                if (value.type === "disabled") {
+                    delete obj[k];
+                    continue;
+                }
+                obj[k] = value;
             }
 
             // Only process direct children keys that include '-custom-' and contain a dot
@@ -281,6 +299,8 @@
                 return [k, value];
             });
 
+            let indexesThatContainsAppsOrLibs = [];
+
             // Filter out entries that have root or libs/apps paths
             const filtered = entries.filter(([k, v]) => {
                 const paths = Array.isArray(v.includedPaths) ? v.includedPaths : [];
@@ -289,7 +309,12 @@
                 const hasLibs = paths.includes("/libs");
                 const hasAppsPrefix = paths.some(p => typeof p === 'string' && p.startsWith('/apps/'));
                 const hasLibsPrefix = paths.some(p => typeof p === 'string' && p.startsWith('/libs/'));
-                return !(hasRoot || hasApp || hasLibs || hasAppsPrefix || hasLibsPrefix);
+                const containsAppsOrLibs = hasRoot || hasApp || hasLibs || hasAppsPrefix || hasLibsPrefix;
+                if (containsAppsOrLibs) {
+                    indexesThatContainsAppsOrLibs.push(k);
+                    console.log(k, v);
+                }
+                return !containsAppsOrLibs;
             });
 
             // Natural sort (numeric-aware) by key
@@ -361,6 +386,8 @@
             for (const [k, v] of selected) {
                 result[k] = v;
             }
+
+            // Remove empty objects, and rename keys to remove /oak:index/ prefix
             for (const [k, v] of selected) {
                 if (Object.keys(v).length === 0) {
                     delete result[k];
@@ -372,6 +399,34 @@
                 }
             }
 
+            // Fully custom indexes (without base version)
+            const fullyCustomIndexes = filtered.filter(e => !e.baseVersion);
+            if (fullyCustomIndexes.length > 0) {
+                for (const [k, v] of fullyCustomIndexes) {
+                    let k2 = k;
+                    if (k2.startsWith('/oak:index/')) {
+                        k2 = k2.substring('/oak:index/'.length);
+                    }
+                    const base = k2.substring(0, k2.indexOf('-'));
+                    if (result[base] != undefined) {
+                        continue;
+                    }
+                    let value = obj[k];
+                    if (value.includedPaths === "/dummy" || 
+                        (value.includedPaths.length === 1 && value.includedPaths[0] === "/dummy")) {
+                        continue;
+                    }
+                    let key = base;
+                    if (key.indexOf('.') < 0) {
+                        key = "custom." + key;
+                    }
+                    result[key] = value;
+                }
+            }
+
+            if (indexesThatContainsAppsOrLibs.length > 0) {
+                result.indexesThatContainsAppsOrLibs = indexesThatContainsAppsOrLibs; 
+            }
             outputEl.value = JSON.stringify(result, null, 2);
         }
 
