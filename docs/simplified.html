@@ -73,7 +73,6 @@
         .panel h2 {
             margin-top: 0;
             color: #333;
-            text-align: center;
         }
         .header h1 {
             flex: 1;
@@ -96,37 +95,76 @@
 
     <div class="container">
         <div class="panel">
+            <h2>Overview</h2>
+            <p>Note: this feature is currently in Beta mode.
+            </p><p>
+                Simplified Index Management for AEM as a Cloud Service
+                is a simple way to define custom indexes and customize
+                out-of-the-box (OOTB) indexes, using one JSON file.
+                There is no need to copy definitions, or to explicitly define versions.
+                When deploying the diff by running the pipeline, 
+                the changes are automatically merged with the latest out-of-the-box index, 
+                and if needed, a new version is automatically created.
+            </p><p>
+                Indexes created using simplified index management 
+                have a property "mergeInfo" that links here.
+                For more information about indexing, see: 
+                <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/operations/indexing" target="_blank">Content Search and Indexing</a>.
+            </p>
+            <h2>Tools</h2>
             <p>
-Note: this feature is currently in Beta mode.
-</p><p>
-Simplified Index Management for AEM as a Cloud Service 
-allows to customize indexes by specifying just the differences
-(called "diff.index") to the out-of-the-box (OOTB) indexes.
-</p><p>
-There is no need to copy definitions, or to explicitly define versions.
-When deploying the diff, the changes are automatically merged
-with the latest out-of-the-box index, and if needed, a new version
-is automatically created.
-</p><p>
-These indexes have a property "mergeInfo" 
-that contains a link to this documentation.
-</p><p>
-For more information about indexing, see: <a href="https://experienceleague.adobe.com/en/docs/experience-manager-cloud-service/content/operations/indexing" target="_blank">Content Search and Indexing</a>.
-</p><p>
-A "diff.index" is a special node under /oak:index named /oak:index/diff.index 
-that carries a JSON "diff" describing additions to existing OOTB index definitions.
-The diff content is stored as a JSON file under diff.json/jcr:content/jcr:data,
-and maps index names to partial fragments. 
-Fragments only contain the properties you want to add to the index.
-During pipeline run, if needed a new version of an index 
-(e.g., damAssetLucene-12-custom-4) is created by applying the additions
-on top of the latest product index (e.g., damAssetLucene-12).
-Existing fields and property values in the OOTB index are preserved;
-only new properties are added.
-</p>
-        </div>
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="indexDefAnalyzer.html" style="color: #007cba; text-decoration: none;">Analyze Index Definitions</a>
+                <ul>
+                    <li><a href="indexDefAnalyzer.html" style="color: #007cba; text-decoration: none;">Index Definition Analyzer</a>:    
+                        create a diff index from existing indexes.</li>
+                    <li><a href="diffIndexVerifier.html" style="color: #007cba; text-decoration: none;">Diff Index Verifier</a>:    
+                        verifies the correctness of the diff index.</li>
+                </ul>
+            </p>
+            <h2>Step by Step Migration Guide</h2>
+            <p>
+                This guide assumes you already have an AEM as a Cloud Service program
+                with custom or customized indexes.
+            </p>
+            <h3>Create the Diff Index</h3>
+            <p>
+                To create the diff index, open the AEM as a Cloud Service "Developer Console".
+                Select "Status Dump": "Oak Indexes", and "Output Format": "JSON". 
+                Click "Get Status", and then click on the "Download" button at the top right.
+                This will open the raw JSON file in a new tab.
+                Select the whole content, and copy it to the clipboard.
+                Then open the <a href="indexDefAnalyzer.html">Index Definition Analyzer</a>.
+                and paste the content into the "Index Definitions (JSON)" textarea.
+                Click "Analyze".
+                On the right side, you will get the diff index.
+                Verify it contains the changes you want to apply.
+                If you manually changed the diff index, 
+                you can verify it by opening the <a href="diffIndexVerifier.html">Diff Index Verifier</a>.
+            </p>
+            <h3>Store the Diff Index</h3>
+            <p>
+                In the Git repository of your program, 
+                in the directory <code>ui.apps/src/main/content/jcr_root/_oak_index</code>,
+                create a new directory named <code>diff.index</code>.
+                Inside it, create a new file called <code>.content.xml</code>,
+                with the following content. You will not need to change this file later.
+                It is needed currently for compatibility with the existing tooling.
+<pre>
+&lt;?xml version="1.0" encoding="UTF-8"?>&lt;jcr:root
+    xmlns:jcr="http://www.jcp.org/jcr/1.0"
+    xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+    jcr:primaryType="nt:unstructured"
+    type="lucene" includedPaths="/same" queryPaths="/same">
+&lt;diff.json jcr:primaryType="nt:file"/>&lt;/jcr:root>
+</pre>
+                Then create a new file called <code>diff.json</code> in the same directory.
+                Copy the content of the diff index into this file.
+            </p>
+            <h3>Deploy the Diff Index</h3>
+            <p>
+                Run the pipeline to deploy the diff index.
+                This will merge the diff index with the latest out-of-the-box index,
+                and if needed, a new version is automatically created.
+            </p>
         </div>
     </div>
 

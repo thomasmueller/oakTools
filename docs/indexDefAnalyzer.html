@@ -103,7 +103,7 @@
 </head>
 <body>
     <div class="header">
-        <a href="index.html" class="back-button">&lt;</a>
+        <a href="simplified.html" class="back-button">&lt;</a>
         <h1>Analyze Index Definitions</h1>
     </div>
 
@@ -138,8 +138,8 @@
 }</textarea>
             </div>
             <div class="text-panel">
-                <h2>Summary</h2>
-                <textarea id="outputJSON" readonly placeholder="Summary will appear here..."></textarea>
+                <h2>Diff Index</h2>
+                <textarea id="outputJSON" readonly placeholder="The diff index will appear here..."></textarea>
                 <div id="errorMessage" class="error"></div>
             </div>
         </div>
@@ -252,6 +252,10 @@
             let obj;
             try {
                 obj = JSON.parse(dataText);
+                // Support case where the whole object is wrapped in a single-element array
+                if (Array.isArray(obj) && obj.length === 1 && isPlainObject(obj[0])) {
+                    obj = obj[0];
+                }
             } catch (e) {
                 errorEl.textContent = 'Invalid JSON: ' + e.message;
                 errorEl.style.display = 'block';
@@ -282,7 +286,6 @@
                 const hasDot = k.includes('.');
                 return isDirectChild && (hasCustom || hasDot);
             });
-
             // Build result entries (normalize includedPaths to an array)
             const entries = keys.map(k => {
                 const def = obj[k] || {};
@@ -326,7 +329,7 @@
             for (const entry of filtered) {
                 const key = entry[0];
                 const dashIndex = key.indexOf('-');
-                const prefix = dashIndex === -1 ? key : key.substring(0, dashIndex);
+                const prefix = dashIndex < 0 ? key : key.substring(0, dashIndex);
                 // Sorted ascending, so later entries overwrite earlier ones to keep the latest
                 prefixToEntry.set(prefix, entry);
             }
@@ -392,7 +395,10 @@
                 if (Object.keys(v).length === 0) {
                     delete result[k];
                 } else {
-                    k2 = k.substring(0, k.indexOf('-'));
+                    k2 = k;
+                    if (k.indexOf('-') >= 0) {
+                        k2 = k.substring(0, k.indexOf('-'));
+                    }
                     k2 = k2.replace('/oak:index/', '');
                     result[k2] = v;
                     delete result[k];
@@ -407,7 +413,10 @@
                     if (k2.startsWith('/oak:index/')) {
                         k2 = k2.substring('/oak:index/'.length);
                     }
-                    const base = k2.substring(0, k2.indexOf('-'));
+                    var base = k2;
+                    if (k.indexOf('-') >= 0) {
+                        base = k.substring(0, k.indexOf('-'));
+                    }
                     if (result[base] != undefined) {
                         continue;
                     }
