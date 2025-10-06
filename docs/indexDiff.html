@@ -250,6 +250,9 @@
         }
 
         function calculateIndexDiff(left, right) {
+            let diff = compareObjects(left, right, '');
+            return diff.join('\n');
+            /*
             let diffLines = [];
             
             // Get all top-level keys from both objects - filter out properties that start with ":"
@@ -312,6 +315,7 @@
             });
             
             return cleanedLines.join('\n');
+            */
         }
 
         function compareObjects(left, right, path) {
@@ -381,9 +385,11 @@
                 }
                 
                 // Add spacing after each key group (except the last one)
+                /*
                 if (index < allKeysOrdered.length - 1) {
                     diffLines.push('');
                 }
+                */
             });
             
             return diffLines;
