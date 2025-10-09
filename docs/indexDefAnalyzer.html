@@ -414,8 +414,8 @@
                         k2 = k2.substring('/oak:index/'.length);
                     }
                     var base = k2;
-                    if (k.indexOf('-') >= 0) {
-                        base = k.substring(0, k.indexOf('-'));
+                    if (k2.indexOf('-') >= 0) {
+                        base = k2.substring(0, k2.indexOf('-'));
                     }
                     if (result[base] != undefined) {
                         continue;
