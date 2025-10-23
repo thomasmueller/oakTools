@@ -104,21 +104,21 @@
 <body>
     <div class="header">
         <a href="index.html" class="back-button">&lt;</a>
-        <h1>Quote JSON</h1>
+        <h1>Quote JSON or JQ</h1>
     </div>
 
     <div class="container">
         <div class="text-panels">
             <div class="text-panel">
-                <h2>JSON</h2>
-                <textarea id="inputJSON" placeholder="Paste JSON here...">{ "test": 1 }</textarea>
+                <h2>JSON or JQ</h2>
+                <textarea id="inputJSON" placeholder="Paste JSON or JQ here...">{ "test": 1 }</textarea>
                 <div class="note">
                     Enter a JSON object that will be converted to a quoted string format automatically.
                 </div>
             </div>
             <div class="text-panel">
-                <h2>Quoted JSON</h2>
-                <textarea id="outputCommand" placeholder="The quoted JSON string will appear here..."></textarea>
+                <h2>Quoted</h2>
+                <textarea id="outputCommand" placeholder="The quoted string will appear here..."></textarea>
                 <div id="errorMessage" class="error"></div>
             </div>
         </div>
@@ -147,7 +147,7 @@
 
             try {
                 // Parse to validate JSON format
-                JSON.parse(inputText);
+                // JSON.parse(inputText);
                 
                 // Create quoted string by JSON stringifying the input
                 const quotedString = JSON.stringify(inputText);
