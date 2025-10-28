@@ -113,7 +113,7 @@
                 <h2>JSON or JQ</h2>
                 <textarea id="inputJSON" placeholder="Paste JSON or JQ here...">{ "test": 1 }</textarea>
                 <div class="note">
-                    Enter a JSON object that will be converted to a quoted string format automatically.
+                    Enter any text that will be converted to a quoted string format automatically.
                 </div>
             </div>
             <div class="text-panel">
@@ -136,7 +136,6 @@
             const outputEl = document.getElementById('outputCommand');
             const errorEl = document.getElementById('errorMessage');
             errorEl.style.display = 'none';
-            errorEl.textContent = '';
 
             const inputText = inputEl.value;
             if (!inputText.trim()) {
@@ -145,18 +144,10 @@
                 return;
             }
 
-            try {
-                // Parse to validate JSON format
-                // JSON.parse(inputText);
-                
-                // Create quoted string by JSON stringifying the input
-                const quotedString = JSON.stringify(inputText);
-                outputEl.value = quotedString;
-            } catch (e) {
-                errorEl.textContent = 'Invalid JSON: ' + e.message;
-                errorEl.style.display = 'block';
-                outputEl.value = '';
-            }
+            // Create quoted string by JSON stringifying the input
+            const quotedString = JSON.stringify(inputText);
+            outputEl.value = quotedString;
+            
             isUpdatingFromLeft = false;
         }
 
@@ -168,7 +159,6 @@
             const outputEl = document.getElementById('outputCommand');
             const errorEl = document.getElementById('errorMessage');
             errorEl.style.display = 'none';
-            errorEl.textContent = '';
 
             const outputText = outputEl.value;
             if (!outputText.trim()) {
@@ -178,17 +168,14 @@
             }
 
             try {
-                // Parse the quoted string to get back the original JSON
+                // Parse the quoted string to get back the original text
                 const unquotedString = JSON.parse(outputText);
-                
-                // Validate that the unquoted string is valid JSON
-                JSON.parse(unquotedString);
-                
                 inputEl.value = unquotedString;
             } catch (e) {
-                errorEl.textContent = 'Invalid quoted JSON: ' + e.message;
-                errorEl.style.display = 'block';
+                // If parsing fails, just leave the input as is
+                // (this handles cases where the quoted string is malformed)
             }
+            
             isUpdatingFromRight = false;
         }
 
