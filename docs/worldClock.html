@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -106,6 +106,7 @@
             font-family: monospace;
             font-size: 14px;
             vertical-align: middle;
+            text-align: center;
         }
         
         .time-input:focus {
@@ -274,45 +275,45 @@
             <tbody>
                 <tr>
                     <td class="timezone-label">US West (PST/PDT)</td>
-                    <td class="time-cell"><span class="time-icon" id="usWestIcon">☀️</span><input type="time" class="time-input" id="usWest" onchange="convertTime('usWest')"></td>
-                    <td class="time-cell"><span class="time-icon" id="usWestAltIcon">☀️</span><input type="time" class="time-input" id="usWestAlt" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="usWestMarchIcon">☀️</span><input type="time" class="time-input" id="usWestMarch" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="usWestOctIcon">☀️</span><input type="time" class="time-input" id="usWestOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usWestIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usWest" onchange="convertTime('usWest')"></td>
+                    <td class="time-cell"><span class="time-icon" id="usWestAltIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usWestAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usWestMarchIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usWestMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usWestOctIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usWestOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">US East (EST/EDT)</td>
-                    <td class="time-cell"><span class="time-icon" id="usEastIcon">☀️</span><input type="time" class="time-input" id="usEast" onchange="convertTime('usEast')"></td>
-                    <td class="time-cell"><span class="time-icon" id="usEastAltIcon">☀️</span><input type="time" class="time-input" id="usEastAlt" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="usEastMarchIcon">☀️</span><input type="time" class="time-input" id="usEastMarch" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="usEastOctIcon">☀️</span><input type="time" class="time-input" id="usEastOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usEastIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usEast" onchange="convertTime('usEast')"></td>
+                    <td class="time-cell"><span class="time-icon" id="usEastAltIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usEastAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usEastMarchIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usEastMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="usEastOctIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="usEastOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">UTC</td>
-                    <td class="time-cell"><span class="time-icon" id="utcIcon">☀️</span><input type="time" class="time-input" id="utc" onchange="convertTime('utc')"></td>
-                    <td class="time-cell"><span class="time-icon" id="utcAltIcon">☀️</span><input type="time" class="time-input" id="utcAlt" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="utcMarchIcon">☀️</span><input type="time" class="time-input" id="utcMarch" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="utcOctIcon">☀️</span><input type="time" class="time-input" id="utcOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="utcIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="utc" onchange="convertTime('utc')"></td>
+                    <td class="time-cell"><span class="time-icon" id="utcAltIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="utcAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="utcMarchIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="utcMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="utcOctIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="utcOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">Central Europe (CET/CEST)</td>
-                    <td class="time-cell"><span class="time-icon" id="centralEuropeIcon">☀️</span><input type="time" class="time-input" id="centralEurope" onchange="convertTime('centralEurope')"></td>
-                    <td class="time-cell"><span class="time-icon" id="centralEuropeAltIcon">☀️</span><input type="time" class="time-input" id="centralEuropeAlt" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="centralEuropeMarchIcon">☀️</span><input type="time" class="time-input" id="centralEuropeMarch" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="centralEuropeOctIcon">☀️</span><input type="time" class="time-input" id="centralEuropeOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="centralEurope" onchange="convertTime('centralEurope')"></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeAltIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="centralEuropeAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeMarchIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="centralEuropeMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="centralEuropeOctIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="centralEuropeOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">Eastern Europe (EET/EEST)</td>
-                    <td class="time-cell"><span class="time-icon" id="easternEuropeIcon">☀️</span><input type="time" class="time-input" id="easternEurope" onchange="convertTime('easternEurope')"></td>
-                    <td class="time-cell"><span class="time-icon" id="easternEuropeAltIcon">☀️</span><input type="time" class="time-input" id="easternEuropeAlt" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="easternEuropeMarchIcon">☀️</span><input type="time" class="time-input" id="easternEuropeMarch" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="easternEuropeOctIcon">☀️</span><input type="time" class="time-input" id="easternEuropeOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="easternEurope" onchange="convertTime('easternEurope')"></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeAltIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="easternEuropeAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeMarchIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="easternEuropeMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="easternEuropeOctIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="easternEuropeOct" readonly></td>
                 </tr>
                 <tr>
                     <td class="timezone-label">India (IST)</td>
-                    <td class="time-cell"><span class="time-icon" id="indiaIcon">☀️</span><input type="time" class="time-input" id="india" onchange="convertTime('india')"></td>
-                    <td class="time-cell"><span class="time-icon" id="indiaAltIcon">☀️</span><input type="time" class="time-input" id="indiaAlt" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="indiaMarchIcon">☀️</span><input type="time" class="time-input" id="indiaMarch" readonly></td>
-                    <td class="time-cell"><span class="time-icon" id="indiaOctIcon">☀️</span><input type="time" class="time-input" id="indiaOct" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="india" onchange="convertTime('india')"></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaAltIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="indiaAlt" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaMarchIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="indiaMarch" readonly></td>
+                    <td class="time-cell"><span class="time-icon" id="indiaOctIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="indiaOct" readonly></td>
                 </tr>
             </tbody>
         </table>
@@ -323,6 +324,71 @@
     </div>
 
     <script>
+        // Format time input to ensure 24-hour HH:MM format
+        function formatTimeInput(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            
+            if (value.length >= 3) {
+                value = value.substring(0, 2) + ':' + value.substring(2, 4);
+            }
+            
+            input.value = value;
+            validateTimeInput(input);
+        }
+        
+        // Validate time input (24-hour format)
+        function validateTimeInput(input) {
+            const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+            const isValid = timePattern.test(input.value) || input.value === '';
+            
+            if (isValid) {
+                input.style.backgroundColor = '';
+                input.style.borderColor = '#ddd';
+            } else {
+                input.style.backgroundColor = '#ffe6e6';
+                input.style.borderColor = '#ff4444';
+            }
+            
+            return isValid;
+        }
+        
+        // Parse time string and ensure 24-hour format
+        function parseTimeString(timeStr) {
+            if (!timeStr) return null;
+            
+            const parts = timeStr.split(':');
+            if (parts.length !== 2) return null;
+            
+            const hours = parseInt(parts[0], 10);
+            const minutes = parseInt(parts[1], 10);
+            
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+            
+            return {
+                hours: hours,
+                minutes: minutes,
+                toString: () => `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+            };
+        }
+        
+        // Add event listeners to all time inputs for formatting
+        function initializeTimeInputs() {
+            document.querySelectorAll('input.time-input').forEach(input => {
+                input.addEventListener('input', () => formatTimeInput(input));
+                input.addEventListener('blur', () => {
+                    if (input.value && !validateTimeInput(input)) {
+                        input.focus();
+                    }
+                });
+                input.addEventListener('keypress', (e) => {
+                    // Only allow numbers and colon
+                    if (!/[0-9:]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        }
+
         // Timezone offsets in hours from UTC
         const timezones = {
             usEast: { standard: -5, daylight: -4, name: 'US East' },
@@ -384,7 +450,11 @@
             const isoDate = offsetTime.getFullYear() + '-' + 
                           String(offsetTime.getMonth() + 1).padStart(2, '0') + '-' + 
                           String(offsetTime.getDate()).padStart(2, '0');
-            const time = offsetTime.toLocaleTimeString();
+            // Use manual formatting to ensure 24-hour format
+            const hours = String(offsetTime.getHours()).padStart(2, '0');
+            const minutes = String(offsetTime.getMinutes()).padStart(2, '0');
+            const seconds = String(offsetTime.getSeconds()).padStart(2, '0');
+            const time = `${hours}:${minutes}:${seconds}`;
             document.getElementById('currentTime').textContent = isoDate + ' ' + time;
         }
 
@@ -527,7 +597,7 @@
                 if (tz !== sourceTimezone) {
                     // First convert the input time to the current time in the target timezone
                     const now = new Date();
-                    const currentTimeInTarget = now.toLocaleTimeString('en-US', { 
+                    const currentTimeInTarget = now.toLocaleTimeString('en-GB', { 
                         timeZone: getTimezoneName(tz), 
                         hour12: false, 
                         hour: '2-digit', 
@@ -537,7 +607,7 @@
                     const [currentTargetHours, currentTargetMinutes] = currentTimeInTarget.split(':').map(Number);
                     
                     // Calculate the time difference between current times
-                    const currentTimeInSource = now.toLocaleTimeString('en-US', { 
+                    const currentTimeInSource = now.toLocaleTimeString('en-GB', { 
                         timeZone: getTimezoneName(sourceTimezone), 
                         hour12: false, 
                         hour: '2-digit', 
@@ -606,7 +676,7 @@
         // Create a DateTime object for DST mismatch calculations
         function createDateTimeForDSTMismatch(sourceDateTime, sourceTimezoneName, targetDate) {
             // Get the time portion from the source
-            const timeStr = sourceDateTime.toLocaleTimeString('en-US', { 
+            const timeStr = sourceDateTime.toLocaleTimeString('en-GB', { 
                 timeZone: sourceTimezoneName, 
                 hour12: false, 
                 hour: '2-digit', 
@@ -643,7 +713,7 @@
                 const timezoneName = getTimezoneName(tz);
                 
                 // Get offset time in this timezone
-                const currentTimeInTz = offsetTime.toLocaleTimeString('en-US', { 
+                const currentTimeInTz = offsetTime.toLocaleTimeString('en-GB', { 
                     timeZone: timezoneName, 
                     hour12: false, 
                     hour: '2-digit', 
@@ -690,14 +760,14 @@
                 mismatch2DateTime.setMonth(mismatchPeriods.mismatch2.representativeDate.getMonth());
                 mismatch2DateTime.setDate(mismatchPeriods.mismatch2.representativeDate.getDate());
                 
-                const mismatch1Time = mismatch1DateTime.toLocaleTimeString('en-US', { 
+                const mismatch1Time = mismatch1DateTime.toLocaleTimeString('en-GB', { 
                     timeZone: timezoneName, 
                     hour12: false, 
                     hour: '2-digit', 
                     minute: '2-digit' 
                 });
                 
-                const mismatch2Time = mismatch2DateTime.toLocaleTimeString('en-US', { 
+                const mismatch2Time = mismatch2DateTime.toLocaleTimeString('en-GB', { 
                     timeZone: timezoneName, 
                     hour12: false, 
                     hour: '2-digit', 
@@ -733,7 +803,7 @@
             const utcDate = new Date(Date.UTC(year, month, day, hours, minutes));
             
             // Convert to the target timezone
-            const timeString = utcDate.toLocaleTimeString('en-US', { 
+            const timeString = utcDate.toLocaleTimeString('en-GB', { 
                 timeZone: timezone, 
                 hour12: false, 
                 hour: '2-digit', 
@@ -926,11 +996,28 @@
             
             row.innerHTML = `
                 <td class="timezone-label">${timezoneName}</td>
-                <td class="time-cell"><span class="time-icon" id="${timezoneId}Icon">☀️</span><input type="time" class="time-input" id="${timezoneId}" onchange="convertTime('${timezoneId}')"></td>
-                <td class="time-cell"><span class="time-icon" id="${timezoneId}AltIcon">☀️</span><input type="time" class="time-input" id="${timezoneId}Alt" readonly></td>
-                <td class="time-cell"><span class="time-icon" id="${timezoneId}MarchIcon">☀️</span><input type="time" class="time-input" id="${timezoneId}March" readonly></td>
-                <td class="time-cell"><span class="time-icon" id="${timezoneId}OctIcon">☀️</span><input type="time" class="time-input" id="${timezoneId}Oct" readonly></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}Icon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="${timezoneId}" onchange="convertTime('${timezoneId}')"></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}AltIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="${timezoneId}Alt" readonly></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}MarchIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="${timezoneId}March" readonly></td>
+                <td class="time-cell"><span class="time-icon" id="${timezoneId}OctIcon">☀️</span><input type="text" class="time-input" pattern="[0-9]{2}:[0-9]{2}" placeholder="HH:MM" maxlength="5" id="${timezoneId}Oct" readonly></td>
             `;
+            
+            // Initialize time inputs for the new row
+            setTimeout(() => {
+                row.querySelectorAll('input.time-input').forEach(input => {
+                    input.addEventListener('input', () => formatTimeInput(input));
+                    input.addEventListener('blur', () => {
+                        if (input.value && !validateTimeInput(input)) {
+                            input.focus();
+                        }
+                    });
+                    input.addEventListener('keypress', (e) => {
+                        if (!/[0-9:]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                            e.preventDefault();
+                        }
+                    });
+                });
+            }, 0);
             return row;
         }
 
@@ -1057,6 +1144,7 @@
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
+            initializeTimeInputs();
             updateCurrentTime();
             updateColumnHeaders();
             updateDSTInfo();
