@@ -158,6 +158,11 @@
 </pre>
                 Then create a new file called <code>diff.json</code> in the same directory.
                 Copy the content of the diff index into this file.
+                Also, in the file <code>/ui.apps/src/main/content/META-INF/vault/filter.xml</code>,
+                add the following line:
+<pre>
+    &lt;filter root="/oak:index/diff.index" />
+</pre>
             </p>
             <h3>Deploy the Diff Index</h3>
             <p>
