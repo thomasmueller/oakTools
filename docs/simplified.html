@@ -170,6 +170,45 @@
                 This will merge the diff index with the latest out-of-the-box index,
                 and if needed, a new version is automatically created.
             </p>
+            <h3>Example diff.json File</h3>
+            <p>
+                The following is an example of a diff.json file.
+                It contains a customization for the damAssetLucene index,
+                and a fully custom index named "custom.slingFolderNodeNames".
+                For fully custom indexes, the name needs to contain a dot.
+                The index name does not contains the "/oak:index/" prefix.
+                Also, fully custom indexes need to have an "includedPaths" property that is not empty,
+                and set to a path that doesn't include "/apps" or "/libs". It is best to set the "queryPaths"
+                to the same value as the "includedPaths".
+<pre>
+{
+    "damAssetLucene": {
+        "indexRules": {
+            "dam:Asset": {
+                "properties": {
+                    "test1": {
+                        "name": "test",
+                        "propertyIndex": true
+                    }
+                }
+            }
+        }
+    },
+    "custom.slingFolderNodeNames": {
+        "async": [ "async" ],
+        "compatVersion": 2,
+        "evaluatePathRestrictions": true,
+        "includedPaths": [ "/content/dam" ],
+        "queryPaths": [ "/content/dam" ],
+        "type": "lucene",
+        "indexRules": {
+            "sling:Folder": {
+                "indexNodeName": true
+            }
+        }
+    }
+}
+</pre>
         </div>
     </div>
 
